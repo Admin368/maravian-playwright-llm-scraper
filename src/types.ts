@@ -9,7 +9,30 @@ export interface ScrapeRequest {
 
 // Represents the desired data structure/schema provided by the user
 // This is intentionally kept flexible (object) as the user defines it.
-export type TargetSchema = object; // Could be a JSON schema object or a textual description
+export interface TargetSchema {
+  type: string;
+  properties: {
+    [key: string]: {
+      type: string;
+      items?: {
+        type: string;
+        properties?: {
+          [key: string]: {
+            type: string;
+          };
+        };
+        required?: string[];
+      };
+      properties?: {
+        [key: string]: {
+          type: string;
+        };
+      };
+      required?: string[];
+    };
+  };
+  required?: string[];
+}
 
 // Represents the final response from the /scrape endpoint
 export interface ScrapeResponse {
@@ -24,14 +47,22 @@ export interface ScrapeResponse {
 export interface ExtractedPageStructure {
   url: string;
   title: string;
-  links: { id: string; text?: string; href?: string | null }[];
-  buttons: { id: string; text?: string }[];
-  // Potentially add other elements like forms, inputs, relevant text snippets
+  links: Array<{
+    id: string;
+    text: string | null | undefined;
+    href: string | null;
+  }>;
+  buttons: Array<{
+    id: string;
+    text: string | null | undefined;
+  }>;
+  textContent: string;
+  emails: string[];
 }
 
 // Represents the analysis result from the LLM
 export interface LLMAnalysisResult {
   isDataFound: boolean;
-  data: object | null; // The data extracted by the LLM, matching targetSchema
-  nextActionElementId: string | null; // ID of the element to interact with next (e.g., "link-1", "button-0")
+  data: Record<string, any> | null;
+  nextActionElementId: string | null;
 }

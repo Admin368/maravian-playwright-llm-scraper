@@ -39,13 +39,22 @@ export async function scrapeWebsite(
             text: btn.textContent?.trim(),
           })
         );
-        // Add other elements as needed (inputs, etc.)
+
+        // Extract text content from the page
+        const textContent = document.body.innerText;
+
+        // Extract email addresses from the page
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const emailMatches = textContent.match(emailRegex) || [];
+        const emails = Array.from(new Set(emailMatches)); // Remove duplicates
+
         return {
           url: document.URL,
           title: document.title,
           links,
           buttons,
-          // Add simplified body text later?
+          textContent,
+          emails,
         };
       });
 
@@ -150,6 +159,43 @@ export async function scrapeWebsite(
           return {
             isError: true,
             message: `LLM suggested clicking an invalid button element: ${analysisResult.nextActionElementId}`,
+          };
+        }
+      } else if (analysisResult.nextActionElementId.startsWith("/")) {
+        // Handle direct paths
+        const newUrl = new URL(
+          analysisResult.nextActionElementId,
+          pageStructure.url
+        ).toString();
+        console.log(`Navigating to path: ${newUrl}`);
+        try {
+          await page.goto(newUrl, {
+            waitUntil: "domcontentloaded",
+            timeout: 10000,
+          });
+        } catch (navError) {
+          console.error(`Failed to navigate to: ${newUrl}`, navError);
+          return {
+            isError: true,
+            message: `Failed to navigate to path: ${analysisResult.nextActionElementId}`,
+          };
+        }
+      } else if (analysisResult.nextActionElementId.startsWith("http")) {
+        // Handle absolute URLs
+        console.log(`Navigating to URL: ${analysisResult.nextActionElementId}`);
+        try {
+          await page.goto(analysisResult.nextActionElementId, {
+            waitUntil: "domcontentloaded",
+            timeout: 10000,
+          });
+        } catch (navError) {
+          console.error(
+            `Failed to navigate to: ${analysisResult.nextActionElementId}`,
+            navError
+          );
+          return {
+            isError: true,
+            message: `Failed to navigate to URL: ${analysisResult.nextActionElementId}`,
           };
         }
       } else {

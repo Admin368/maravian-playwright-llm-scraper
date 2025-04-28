@@ -10,8 +10,8 @@
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""
   },

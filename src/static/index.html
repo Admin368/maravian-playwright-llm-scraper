@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Playwright LLM Scraper API</title>
+    <style>
+      :root {
+        --primary-color: #2563eb;
+        --secondary-color: #1e40af;
+        --text-color: #1f2937;
+        --bg-color: #f3f4f6;
+        --code-bg: #f1f5f9;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--bg-color);
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 1rem 0;
+        margin-bottom: 2rem;
+      }
+
+      h1 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+      }
+
+      h2 {
+        color: var(--secondary-color);
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      pre {
+        background: var(--code-bg);
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+
+      code {
+        font-family: "Courier New", Courier, monospace;
+        background: var(--code-bg);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+      }
+
+      .test-form {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .form-group {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      label {
+        font-weight: 600;
+      }
+
+      input,
+      textarea {
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+
+      button {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: var(--secondary-color);
+      }
+
+      #result {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        display: none;
+      }
+
+      .success {
+        background-color: #dcfce7;
+        border: 1px solid #86efac;
+      }
+
+      .error {
+        background-color: #fee2e2;
+        border: 1px solid #fca5a5;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1>Playwright LLM Scraper API</h1>
+        <p>
+          A powerful web scraping API that uses Playwright and LLM to extract
+          structured data from websites.
+        </p>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="card">
+        <h2>API Documentation</h2>
+        <p>
+          The API provides a single endpoint for scraping websites and
+          extracting structured data:
+        </p>
+
+        <h3>Endpoint: <code>POST /scrape</code></h3>
+
+        <h4>Request Body</h4>
+        <pre><code>{
+    "url": "https://example.com",
+    "maxSteps": 5,
+    "targetSchema": {
+        "type": "object",
+        "properties": {
+            "contact_email": { "type": "string" }
+        },
+        "required": ["contact_email"]
+    }
+}</code></pre>
+
+        <h4>Response</h4>
+        <pre><code>{
+    "isError": false,
+    "message": "Information extracted successfully.",
+    "data": {
+        "contact_email": "contact@example.com"
+    }
+}</code></pre>
+
+        <h4>Parameters</h4>
+        <ul>
+          <li><code>url</code> (string): The website URL to scrape</li>
+          <li>
+            <code>maxSteps</code> (number): Maximum number of navigation steps
+          </li>
+          <li>
+            <code>targetSchema</code> (object): JSON Schema describing the
+            desired data structure
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Live Testing</h2>
+        <form id="testForm" class="test-form">
+          <div class="form-group">
+            <label for="url">Website URL:</label>
+            <input
+              type="url"
+              id="url"
+              name="url"
+              required
+              placeholder="https://example.com"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="maxSteps">Maximum Steps:</label>
+            <input
+              type="number"
+              id="maxSteps"
+              name="maxSteps"
+              value="5"
+              min="1"
+              max="10"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="targetSchema">Target Schema:</label>
+            <textarea id="targetSchema" name="targetSchema" rows="10" required>
+{
+    "type": "object",
+    "properties": {
+        "contact_email": { "type": "string" }
+    },
+    "required": ["contact_email"]
+}</textarea
+            >
+          </div>
+
+          <button type="submit">Test API</button>
+        </form>
+
+        <div id="result"></div>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("testForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const url = document.getElementById("url").value;
+          const maxSteps = parseInt(document.getElementById("maxSteps").value);
+          const targetSchema = JSON.parse(
+            document.getElementById("targetSchema").value
+          );
+
+          const resultDiv = document.getElementById("result");
+          resultDiv.style.display = "block";
+
+          try {
+            const response = await fetch("/scrape", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                url,
+                maxSteps,
+                targetSchema,
+              }),
+            });
+
+            const data = await response.json();
+
+            if (data.isError) {
+              resultDiv.className = "error";
+              resultDiv.innerHTML = `<strong>Error:</strong> ${data.message}`;
+            } else {
+              resultDiv.className = "success";
+              resultDiv.innerHTML = `
+                        <strong>Success!</strong><br>
+                        <strong>Message:</strong> ${data.message}<br>
+                        <strong>Data:</strong><br>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `;
+            }
+          } catch (error) {
+            resultDiv.className = "error";
+            resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+          }
+        });
+    </script>
+  </body>
+</html>

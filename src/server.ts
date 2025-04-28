@@ -1,22 +1,34 @@
-import express, { Request, Response } from "express";
+import express, {
+  Request,
+  Response,
+  Application,
+  RequestHandler,
+} from "express";
 import dotenv from "dotenv";
 import { ScrapeRequest, ScrapeResponse } from "./types";
 import { scrapeWebsite } from "./scraper";
+import path from "path";
 
 dotenv.config();
 
-const app = express();
+const app: Application = express();
 const port = process.env.PORT || 3000;
+
+// Serve static files from the static directory
+app.use(express.static(path.join(__dirname, "static")));
 
 app.use(express.json());
 
-// Simple root route
+// Root route serves the welcome page
 app.get("/", (req: Request, res: Response) => {
-  res.send("Playwright LLM Scraper API is running!");
+  res.sendFile(path.join(__dirname, "static", "index.html"));
 });
 
 // API endpoint for scraping
-app.post("/scrape", async (req: Request, res: Response<ScrapeResponse>) => {
+const scrapeHandler: RequestHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const scrapeRequest: ScrapeRequest = req.body;
 
   // Basic validation
@@ -25,20 +37,22 @@ app.post("/scrape", async (req: Request, res: Response<ScrapeResponse>) => {
     !scrapeRequest.targetSchema ||
     !scrapeRequest.maxSteps
   ) {
-    return res.status(400).json({
+    res.status(400).json({
       isError: true,
       message: "Missing required fields: url, targetSchema, maxSteps",
     });
+    return;
   }
 
   if (
     typeof scrapeRequest.maxSteps !== "number" ||
     scrapeRequest.maxSteps <= 0
   ) {
-    return res.status(400).json({
+    res.status(400).json({
       isError: true,
       message: "maxSteps must be a positive number",
     });
+    return;
   }
 
   console.log(`Received scrape request for URL: ${scrapeRequest.url}`);
@@ -53,7 +67,9 @@ app.post("/scrape", async (req: Request, res: Response<ScrapeResponse>) => {
       message: "An unexpected server error occurred.",
     });
   }
-});
+};
+
+app.post("/scrape", scrapeHandler);
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);

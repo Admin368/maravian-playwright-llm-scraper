@@ -17,3 +17,10 @@
 - [ ] Refine prompts and logic
 - [x] Add basic README
 - [x] Create .gitignore file
+- [ ] SQLLITE DB storage of requests
+- [ ] basic auth, and token based requests
+- [ ] rate limiting
+- [ ] admin access page
+- [ ] admin approve user
+- [ ] admin view request history
+- [ ] UI based scraping page with csv format export

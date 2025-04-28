@@ -111,6 +111,34 @@ pnpm test:debug
 - `/tests`: Test files
 - `/static`: Web interface files
 
+## Docker Deployment
+
+You can run the application using Docker Compose:
+
+1. Copy the environment variables file:
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` and add your OpenAI API key and optional proxy settings.
+
+3. Build and start the Docker container:
+```bash
+docker compose up -d
+```
+
+4. View logs:
+```bash
+docker compose logs -f
+```
+
+5. Stop the container:
+```bash
+docker compose down
+```
+
+The server will be available at `http://localhost:3000`.
+
 ## License
 
 ISC

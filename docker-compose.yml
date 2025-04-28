@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  scraper:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - USE_PROXY=${USE_PROXY:-false}
+      - PROXY_URL=${PROXY_URL:-}
+    # Add healthcheck to ensure the service is running properly
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Restart policy for production
+    restart: unless-stopped

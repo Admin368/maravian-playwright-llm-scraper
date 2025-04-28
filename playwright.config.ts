@@ -1,4 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+// Validate required environment variables
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is required");
+}
 
 export default defineConfig({
   testDir: "./tests",
@@ -9,9 +17,13 @@ export default defineConfig({
   reporter: "html",
   use: {
     trace: "on-first-retry",
-    proxy: {
-      server: "http://192.168.1.168:7890",
-    },
+    ...(process.env.USE_PROXY === "true" && process.env.PROXY_URL
+      ? {
+          proxy: {
+            server: process.env.PROXY_URL,
+          },
+        }
+      : {}),
   },
   projects: [
     {

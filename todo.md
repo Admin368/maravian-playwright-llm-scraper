@@ -8,12 +8,12 @@
 - [x] Implement Playwright scraping logic (`scraper.ts`) - _Initial structure_
 - [x] Implement Express server (`server.ts`) - _Basic setup_
 - [x] Define API endpoint (`/scrape`)
-- [ ] Implement core scraping loop (fetch, analyze, navigate) - _Partially done in scraper.ts_
-- [ ] Implement LLM logic for information extraction and formatting - _Placeholder prompt in llm.ts_
-- [ ] Implement LLM logic for deciding next action (click) - _Placeholder prompt in llm.ts_
-- [ ] Add error handling - _Basic handling added_
+- [x] Implement core scraping loop (fetch, analyze, navigate) - _Partially done in scraper.ts_
+- [x] Implement LLM logic for information extraction and formatting - _Placeholder prompt in llm.ts_
+- [x] Implement LLM logic for deciding next action (click) - _Placeholder prompt in llm.ts_
+- [x] Add error handling - _Basic handling added_
 - [x] Add max steps limit - _Implemented in scraper.ts_
-- [ ] Add user-defined schema handling - _Passed to LLM, needs prompt refinement_
+- [x] Add user-defined schema handling - _Passed to LLM, needs prompt refinement_
 - [ ] Refine prompts and logic
-- [ ] Add basic README
-- [ ] Create .gitignore file
+- [x] Add basic README
+- [x] Create .gitignore file

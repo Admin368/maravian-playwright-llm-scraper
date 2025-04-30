@@ -240,7 +240,16 @@
 }</code></pre>
       </div>
 
-      <a href="/" class="home-link">Back to Search</a>
+      <a href="index.html" class="home-link" id="backToSearch">Back to Search</a>
     </div>
+    <script>
+      // Calculate the relative path to search.html based on current location
+      window.addEventListener('DOMContentLoaded', () => {
+        const link = document.getElementById('backToSearch');
+        const currentPath = window.location.pathname;
+        const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+        link.href = parentPath + '';
+      });
+    </script>
   </body>
 </html>

@@ -47,10 +47,27 @@ export async function scrapeWebsite(
         // Extract text content from the page
         const textContent = document.body.innerText;
 
-        // Extract email addresses from the page
-        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        // Enhanced regex for finding email addresses - handles more formats and variations
+        const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
         const emailMatches = textContent.match(emailRegex) || [];
-        const emails = Array.from(new Set(emailMatches)); // Remove duplicates
+        
+        // Look for email addresses in href attributes of mailto: links
+        const mailtoLinks = Array.from(document.querySelectorAll('a[href^="mailto:"]'));
+        const mailtoEmails = mailtoLinks.map(link => {
+          const href = link.getAttribute('href') || '';
+          const match = href.match(/mailto:([^?&]+)/);
+          return match ? match[1] : null;
+        }).filter(email => email !== null) as string[]; // Filter out nulls and cast to string[]
+        
+        // Combine and remove duplicates
+        const emails = Array.from(new Set([...emailMatches, ...mailtoEmails]));
+
+        // Look for contact information in specific elements
+        const contactInfoElements = document.querySelectorAll('.contact, .contact-info, .footer, footer');
+        let contactText = '';
+        contactInfoElements.forEach(el => {
+          contactText += el.textContent + ' ';
+        });
 
         return {
           url: document.URL,
@@ -59,15 +76,22 @@ export async function scrapeWebsite(
           buttons,
           textContent,
           emails,
+          contactText
         };
       });
 
+      // Before passing pageStructure to other functions, ensure emails is string[]
+      const safePageStructure = {
+        ...pageStructure,
+        emails: pageStructure.emails.filter((email): email is string => email !== null)
+      };
+
       // Add current page to history
       pageHistory.push({
-        url: pageStructure.url,
-        title: pageStructure.title,
-        textContent: pageStructure.textContent,
-        emails: pageStructure.emails,
+        url: safePageStructure.url,
+        title: safePageStructure.title,
+        textContent: safePageStructure.textContent,
+        emails: safePageStructure.emails,
         timestamp: new Date().toISOString(),
         clickedElement: pageHistory.length > 0 ? pageHistory[pageHistory.length - 1].nextActionElementId : null,
         nextActionElementId: null // Will be updated after LLM analysis
@@ -75,7 +99,7 @@ export async function scrapeWebsite(
 
       sendProgress(scrapeId, "Analyzing page content with LLM...");
       const analysisResult = await analyzeContentAndDecideNextAction(
-        pageStructure,
+        safePageStructure,
         request.targetSchema,
         request.query,
         pageHistory

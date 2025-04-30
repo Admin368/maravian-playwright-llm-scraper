@@ -33,6 +33,16 @@ ${page.textContent.slice(0, 300)}...
 Emails found: ${page.emails.join(', ')}
 `).join('\n');
 
+  // For email-related queries, prioritize searching for contact pages and "mailto:" links
+  const isEmailQuery = query.toLowerCase().includes('email') || 
+                      query.toLowerCase().includes('contact') || 
+                      query.toLowerCase().includes('reach');
+
+  // Check if we've already found any email addresses in our page history
+  const allEmailsFound = pageHistory
+    .flatMap(page => page.emails)
+    .filter(email => email && email.includes('@') && email.includes('.'));
+
   // Prepare the prompt for the LLM
   const prompt = `
 You are an AI assistant specialized in extracting structured information from websites.
@@ -60,12 +70,21 @@ ${historySummary}
    - If it's an absolute URL, use the complete URL
    - DO NOT suggest navigation to URLs that appear in the page history
 
+${isEmailQuery ? `
+IMPORTANT: This query is requesting email contact information.
+- Look for "Contact", "Contact Us", or "About" links that might lead to contact information
+- Check if there are any existing emails found across all pages: ${allEmailsFound.join(', ')}
+- If an email is found within a mailto: link, make sure to extract it correctly
+- If you see patterns like "name[at]domain[dot]com", interpret them as actual email addresses
+- If you find any contact form, note it as an alternative contact method
+` : ''}
+
 Current page information:
 URL: ${pageStructure.url}
 Title: ${pageStructure.title}
 
 Found email addresses:
-${pageStructure.emails.map((email) => `- ${email}`).join("\n")}
+${pageStructure.emails.map((email) => `- ${email}`).join("\n") || "No email addresses found in page content"}
 
 Available links:
 ${pageStructure.links
@@ -76,6 +95,9 @@ Available buttons:
 ${pageStructure.buttons
   .map((b) => `- ID: ${b.id}, Text: "${b.text}"`)
   .join("\n")}
+
+${isEmailQuery ? `Special contact scan: Look for any contact information in these special areas:
+${pageStructure.contactText || "No targeted contact sections found"}` : ''}
 
 Page text content:
 ${pageStructure.textContent}
@@ -125,6 +147,16 @@ Respond in JSON format with this structure:
           typeof parsedResult.nextActionElementId !== "string" && 
           parsedResult.nextActionElementId !== null) {
         throw new Error("Invalid response format: missing or invalid nextActionElementId when no data found");
+      }
+
+      // For email queries, if we have any emails in page history but the LLM didn't find them,
+      // add them to the response manually
+      if (isEmailQuery && allEmailsFound.length > 0 && 
+          (!parsedResult.data || !parsedResult.data.email || parsedResult.data.email === '')) {
+        parsedResult.isDataFound = true;
+        if (!parsedResult.data) parsedResult.data = {};
+        parsedResult.data.email = allEmailsFound[0]; // Use the first email we found
+        parsedResult.reasoning += " Email address found in page history.";
       }
 
       return parsedResult;

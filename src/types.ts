@@ -71,6 +71,7 @@ export interface ExtractedPageStructure {
   }>;
   textContent: string;
   emails: string[];
+  contactText: string; // Specialized text extracted from contact sections, footers, etc.
 }
 
 // Represents the analysis result from the LLM
@@ -80,4 +81,5 @@ export interface LLMAnalysisResult {
   isDataFound: boolean;
   data: Record<string, any> | null;
   nextActionElementId: string | null;
+  reasoning?: string; // Explanation for the decision
 }

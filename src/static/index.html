@@ -3,42 +3,72 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web Scraper Search</title>
+    <title>Maravian AI Search</title>
     <style>
       :root {
         --primary-color: #2563eb;
         --secondary-color: #1e40af;
         --text-color: #1f2937;
-        --bg-color: #f3f4f6;
-        --code-bg: #f1f5f9;
+        --bg-color: #1e1e1e;
+        --panel-bg: #2d2d2d;
+        --border-color: #404040;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
 
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           Oxygen, Ubuntu, Cantarell, sans-serif;
         line-height: 1.6;
-        color: var(--text-color);
+        color: #e0e0e0;
         background-color: var(--bg-color);
-        margin: 0;
-        padding: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
       }
 
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
+      .header {
+        background: var(--panel-bg);
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
       }
 
-      header {
-        text-align: center;
-        margin-bottom: 2rem;
+      .main-container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
       }
 
-      .search-card {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      .params-panel {
+        width: 400px;
+        background: var(--panel-bg);
+        border-right: 1px solid var(--border-color);
+        padding: 1.5rem;
+        overflow-y: auto;
+      }
+
+      .output-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-color);
+        overflow: hidden;
+      }
+
+      .output-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+      }
+
+      .prompt-panel {
+        background: var(--panel-bg);
+        border-top: 1px solid var(--border-color);
+        padding: 1rem;
       }
 
       .form-group {
@@ -47,17 +77,19 @@
 
       label {
         display: block;
-        font-weight: 600;
+        font-weight: 500;
         margin-bottom: 0.5rem;
-        color: var(--text-color);
+        color: #e0e0e0;
       }
 
       input, textarea {
         width: 100%;
         padding: 0.75rem;
-        border: 2px solid #e5e7eb;
+        border: 1px solid var(--border-color);
         border-radius: 6px;
-        font-size: 1rem;
+        font-size: 0.9rem;
+        background: var(--bg-color);
+        color: #e0e0e0;
         transition: border-color 0.2s;
       }
 
@@ -72,33 +104,95 @@
         min-height: 120px;
       }
 
+      .progress-card, .result-card {
+        background: var(--panel-bg);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--border-color);
+      }
+
+      .progress-messages {
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-top: 0.5rem;
+      }
+
+      .progress-message {
+        padding: 0.25rem 0;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .progress-message:last-child {
+        border-bottom: none;
+      }
+
+      .success {
+        border-left: 4px solid #059669;
+      }
+
+      .error {
+        border-left: 4px solid #dc2626;
+      }
+
+      pre {
+        background: var(--bg-color);
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+        margin: 0.5rem 0;
+      }
+
+      code {
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+      }
+
       button {
         width: 100%;
         background-color: var(--primary-color);
         color: white;
-        padding: 1rem;
+        padding: 0.75rem;
         border: none;
         border-radius: 6px;
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
         transition: background-color 0.2s;
       }
 
-      button:hover {
+      button:hover:not(:disabled) {
         background-color: var(--secondary-color);
       }
 
       button:disabled {
-        background-color: #9ca3af;
+        background-color: #4b5563;
         cursor: not-allowed;
+      }
+
+      .prompt-input {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .prompt-input textarea {
+        flex: 1;
+        height: 60px;
+        min-height: unset;
+        resize: none;
+      }
+
+      .prompt-input button {
+        width: auto;
+        white-space: nowrap;
       }
 
       .spinner {
         display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(255,255,255,.3);
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,.3);
         border-radius: 50%;
         border-top-color: white;
         animation: spin 1s ease-in-out infinite;
@@ -109,96 +203,29 @@
         to { transform: rotate(360deg); }
       }
 
-      #result {
-        margin-top: 2rem;
-        display: none;
-      }
-
-      .result-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-top: 1rem;
-      }
-
-      .success {
-        border-left: 4px solid #10b981;
-      }
-
-      .error {
-        border-left: 4px solid #ef4444;
-      }
-
-      pre {
-        background: var(--code-bg);
-        padding: 1rem;
-        border-radius: 4px;
-        overflow-x: auto;
-        margin: 1rem 0;
-      }
-
       .copy-btn {
-        background: #e5e7eb;
-        color: var(--text-color);
+        background: #4b5563;
         padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 4px;
-        font-size: 0.875rem;
         margin-top: 0.5rem;
-        width: auto;
+        font-size: 0.8rem;
       }
 
       .copy-btn:hover {
-        background: #d1d5db;
+        background: #374151;
       }
 
-      .docs-link {
-        display: block;
-        text-align: center;
-        margin-top: 2rem;
-        color: var(--primary-color);
-        text-decoration: none;
-      }
-
-      .docs-link:hover {
-        text-decoration: underline;
-      }
-
-      /* Add to existing styles */
-      .progress-card {
-        background: white;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-top: 1rem;
-        border-left: 4px solid #2563eb;
-      }
-
-      #progress-messages {
-        max-height: 200px;
-        overflow-y: auto;
-        font-family: monospace;
-        font-size: 0.9rem;
-        line-height: 1.5;
-      }
-
-      .progress-message {
-        padding: 0.25rem 0;
-        border-bottom: 1px solid #e5e7eb;
-      }
-
-      .progress-message:last-child {
-        border-bottom: none;
+      #targetSchema {
+        flex-grow: 1;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <header>
-        <h1>Web Scraper Search</h1>
-        <p>Extract structured data from any website using natural language queries</p>
-      </header>
+    <header class="header">
+      <h1>Maravian AI Search</h1>
+    </header>
 
-      <div class="search-card">
+    <div class="main-container">
+      <div class="params-panel">
         <form id="searchForm">
           <div class="form-group">
             <label for="url">Website URL</label>
@@ -209,15 +236,6 @@
               placeholder="https://maravian.com"
               value="https://maravian.com"
             />
-          </div>
-
-          <div class="form-group">
-            <label for="query">What would you like to find?</label>
-            <textarea 
-              id="query" 
-              required 
-              placeholder="Describe what information you want to extract..."
-            >find the email from the site</textarea>
           </div>
 
           <div class="form-group">
@@ -237,6 +255,7 @@
             <textarea 
               id="targetSchema" 
               required
+              style="height: 300px;"
             >{
     "type": "object",
     "properties": {
@@ -245,21 +264,35 @@
     "required": ["email"]
 }</textarea>
           </div>
-
-          <button type="submit" id="searchBtn">
-            <span>Search</span>
-          </button>
         </form>
+        <a href="/docs.html" style="color: white;">View API Documentation</a>
       </div>
 
-      <div id="progress" class="progress-card" style="display: none;">
-        <h3>Progress</h3>
-        <div id="progress-messages"></div>
+      <div class="output-panel">
+        <div class="output-content" id="outputContent">
+          <div id="progress" style="display: none;">
+            <div class="progress-card">
+              <h3>Progress</h3>
+              <div id="progress-messages" class="progress-messages"></div>
+            </div>
+          </div>
+
+          <div id="result"></div>
+        </div>
+
+        <div class="prompt-panel">
+          <div class="prompt-input">
+            <textarea 
+              id="query" 
+              required 
+              placeholder="What would you like to find?"
+            >find the email from the site</textarea>
+            <button type="button" id="searchBtn" onclick="document.getElementById('searchForm').dispatchEvent(new Event('submit'))">
+              <span>Search</span>
+            </button>
+          </div>
+        </div>
       </div>
-
-      <div id="result"></div>
-
-      <a href="/docs.html" class="docs-link">View API Documentation</a>
     </div>
 
     <script>
@@ -293,6 +326,7 @@
         
         if (data.isError) {
           resultDiv.innerHTML = `
+
             <div class="result-card error">
               <h3>Error</h3>
               <p>${data.message}</p>

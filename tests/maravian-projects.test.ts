@@ -7,6 +7,7 @@ test.describe("Maravian Projects", () => {
     const request: ScrapeRequest = {
       url: "https://maravian.com",
       maxSteps: 5,
+      query: "Find all projects listed on the website, including their names and descriptions",
       targetSchema: {
         type: "object",
         properties: {
@@ -26,7 +27,7 @@ test.describe("Maravian Projects", () => {
       },
     };
 
-    const result = await scrapeWebsite(request);
+    const result = await scrapeWebsite(request, "maravian-projects");
 
     // Check if we got a successful result
     expect(result.isError).toBe(false);

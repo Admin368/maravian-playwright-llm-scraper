@@ -17,7 +17,7 @@ test.describe("Maravian Contact Info", () => {
       },
     };
 
-    const result = await scrapeWebsite(request);
+    const result = await scrapeWebsite(request, "maravian-contact");
 
     // Check if we got a successful result
     expect(result.isError).toBe(false);

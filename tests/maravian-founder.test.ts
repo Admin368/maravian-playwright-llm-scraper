@@ -7,6 +7,7 @@ test.describe("Maravian Founder", () => {
     const request: ScrapeRequest = {
       url: "https://maravian.com",
       maxSteps: 5,
+      query: "Find the company founder's name from the website",
       targetSchema: {
         type: "object",
         properties: {
@@ -22,7 +23,7 @@ test.describe("Maravian Founder", () => {
       },
     };
 
-    const result = await scrapeWebsite(request);
+    const result = await scrapeWebsite(request, "maravian-founder");
 
     // Check if we got a successful result
     expect(result.isError).toBe(false);

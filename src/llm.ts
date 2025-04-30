@@ -81,9 +81,9 @@ If you find all required information that matches both the schema AND the query,
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Using GPT-4 for better accuracy
+      model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.1, // Very low temperature for consistent results
+      temperature: 0.1,
     });
 
     const llmResponseContent = response.choices[0]?.message?.content;
@@ -93,29 +93,41 @@ If you find all required information that matches both the schema AND the query,
 
     console.log("LLM Raw Response:", llmResponseContent);
 
-    // Parse the LLM response
-    const parsedResult: LLMAnalysisResult = JSON.parse(llmResponseContent);
-
-    // Enhanced validation
-    if (
-      typeof parsedResult.isDataFound !== "boolean" ||
-      (parsedResult.isDataFound && !parsedResult.data) ||
-      (!parsedResult.isDataFound &&
-        typeof parsedResult.nextActionElementId !== "string" &&
-        parsedResult.nextActionElementId !== null)
-    ) {
-      console.error("LLM response format is invalid:", parsedResult);
-      return {
-        isDataFound: false,
-        data: null,
-        nextActionElementId: parsedResult.nextActionElementId,
-      };
+    // Try to extract JSON from the response if it's wrapped in markdown
+    let jsonContent = llmResponseContent;
+    const jsonMatch = llmResponseContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonContent = jsonMatch[1];
     }
 
-    return parsedResult;
+    try {
+      const parsedResult: LLMAnalysisResult = JSON.parse(jsonContent);
+
+      // Enhanced validation
+      if (typeof parsedResult.isDataFound !== "boolean") {
+        throw new Error("Invalid response format: missing or invalid isDataFound property");
+      }
+      
+      if (parsedResult.isDataFound && !parsedResult.data) {
+        throw new Error("Invalid response format: isDataFound is true but no data provided");
+      }
+
+      if (!parsedResult.isDataFound && 
+          typeof parsedResult.nextActionElementId !== "string" && 
+          parsedResult.nextActionElementId !== null) {
+        throw new Error("Invalid response format: missing or invalid nextActionElementId when no data found");
+      }
+
+      return parsedResult;
+    } catch (parseError: any) {
+      console.error("Failed to parse LLM response:", parseError);
+      throw new Error(`Failed to parse LLM response: ${parseError.message}\nRaw response: ${llmResponseContent}`);
+    }
   } catch (error: any) {
     console.error("Error interacting with LLM:", error);
     return {
+      isError: true,
+      message: `LLM Error: ${error.message}`,
       isDataFound: false,
       data: null,
       nextActionElementId: null,

@@ -63,6 +63,7 @@ export interface ExtractedPageStructure {
 
 // Represents the analysis result from the LLM
 export interface LLMAnalysisResult {
+  isTrue: boolean; // Indicates if the LLM found all required information
   isDataFound: boolean;
   data: Record<string, any> | null;
   nextActionElementId: string | null;

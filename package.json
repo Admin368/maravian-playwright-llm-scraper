@@ -9,6 +9,8 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
+    "copy-static": "node -e \"const fs=require('fs');const path=require('path');const dir='dist/static';if(!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})};fs.cpSync('src/static',dir,{recursive:true})\"",
+    "prebuild": "npm run copy-static",
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
@@ -19,17 +21,22 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "dependencies": {
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "https-proxy-agent": "^7.0.6",
-    "openai": "^4.96.0",
-    "playwright": "^1.52.0"
-  },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
+    "@prisma/engines": "^6.6.0",
     "@types/express": "^5.0.1",
     "@types/node": "^22.15.2",
+    "prisma": "^6.6.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "https-proxy-agent": "^7.0.6",
+    "openai": "^4.96.0",
+    "playwright": "^1.52.0",
+    "prisma": "^6.6.0"
   }
 }

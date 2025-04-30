@@ -14,13 +14,17 @@
 - [x] Add error handling - _Basic handling added_
 - [x] Add max steps limit - _Implemented in scraper.ts_
 - [x] Add user-defined schema handling - _Passed to LLM, needs prompt refinement_
-- [ ] Refine prompts and logic
+- [x] Refine prompts and logic
 - [x] Add basic README
 - [x] Create .gitignore file
-- [ ] SQLLITE DB storage of requests
-- [ ] basic auth, and token based requests
-- [ ] rate limiting
-- [ ] admin access page
-- [ ] admin approve user
-- [ ] admin view request history
-- [ ] UI based scraping page with csv format export
+- [x] Database storage of requests
+- [x] basic auth, and token based requests _(Models and endpoints added)_
+- [x] rate limiting _(Added using express-rate-limit)_
+- [x] admin access page _(Created admin.html and /admin route)_
+- [x] admin approve user _(Endpoint exists)_
+- [x] admin view request history _(Endpoint and UI added)_
+- [x] UI based scraping page with csv format export _(Created scrape.html with CSV export)_
+- [x] docker build error in prod Error: ENOENT: no such file or directory, stat '/app/dist/static/index.html' _(Fixed with proper static file handling)_
+- [x] better https error response for scrape api _(Added proper error handling)_
+- [x] add a text prompt to llm from the api request _(Added prompt support in interface and scraper)_
+- [x] change port to 6061 by default or port given in .env

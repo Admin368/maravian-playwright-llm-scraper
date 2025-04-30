@@ -1,0 +1,67 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Models for storing scraping requests and results
+model ScrapeRequest {
+  id          Int      @id @default(autoincrement())
+  url         String   @db.Text
+  maxSteps    Int
+  targetSchema String  @db.LongText  // Store JSON as text
+  createdAt   DateTime @default(now())
+  result      ScrapeResult?
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+
+  @@index([userId])
+}
+
+model ScrapeResult {
+  id            Int      @id @default(autoincrement())
+  requestId     Int      @unique
+  request       ScrapeRequest @relation(fields: [requestId], references: [id])
+  isError       Boolean
+  message       String?  @db.LongText
+  data          String?  @db.LongText  // Store JSON as text
+  completedAt   DateTime @default(now())
+
+  @@index([requestId])
+}
+
+// User management and authentication models
+model User {
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  passwordHash   String       @db.Text
+  name          String?       @db.Text
+  isAdmin       Boolean       @default(false)
+  isApproved    Boolean       @default(false)
+  apiTokens     ApiToken[]
+  scrapeRequests ScrapeRequest[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([email])
+}
+
+model ApiToken {
+  id            Int      @id @default(autoincrement())
+  token         String   @unique
+  name          String   @db.Text  // Purpose/description of the token
+  user          User     @relation(fields: [userId], references: [id])
+  userId        Int
+  lastUsed      DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  isRevoked     Boolean  @default(false)
+
+  @@index([token])
+  @@index([userId])
+}

@@ -120,7 +120,7 @@ You can run the application using Docker Compose:
 cp .env.example .env
 ```
 
-2. Edit `.env` and add your OpenAI API key and optional proxy settings.
+2. Edit `.env` and add your OpenAI API key and optional proxy settings. You can also customize the port (default: 6061).
 
 3. Build and start the Docker container:
 ```bash
@@ -137,7 +137,7 @@ docker compose logs -f
 docker compose down
 ```
 
-The server will be available at `http://localhost:3000`.
+The server will be available at `http://localhost:6061`.
 
 ## License
 

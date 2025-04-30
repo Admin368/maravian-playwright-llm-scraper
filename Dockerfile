@@ -41,14 +41,17 @@ RUN pnpm install
 # Install Playwright browsers
 RUN pnpm exec playwright install chromium
 
-# Copy source code
+# Copy source code and static files
 COPY . .
 
-# Build TypeScript code
+# Build TypeScript code (includes copying static files via prebuild script)
 RUN pnpm build
 
-# Expose port
-EXPOSE 3000
+# Verify static files exist
+RUN test -d dist/static || exit 1
+
+# Expose port (using 6061 as specified in .env)
+EXPOSE 6061
 
 # Start the application
 CMD ["pnpm", "start"]

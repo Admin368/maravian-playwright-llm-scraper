@@ -21,58 +21,52 @@ export async function analyzeContentAndDecideNextAction(
 
   // Prepare the prompt for the LLM
   const prompt = `
-You are an AI assistant specialized in extracting structured information from websites.
-Your task is to find information matching the specified schema and determine the best next action.
+You are an AI assistant that MUST return ONLY valid JSON matching the specified structure - no other text.
+Your task is to find information matching a schema and determine navigation actions.
 
-Instructions:
-1. Analyze the target schema to understand what information is needed:
+INPUT SCHEMA:
 ${JSON.stringify(targetSchema, null, 2)}
 
-2. First check if the required information is already available:
-   - Look for email addresses in the 'emails' array
-   - Check if any email matches the required format and context
-   - For contact emails, prefer business/company emails over personal ones
+RULES:
+1. Data extraction:
+   - Match schema types exactly
+   - For email fields: Check 'emails' array
+   - For text fields: Search page content
+   - For arrays: Find lists/tables
+   - For nested objects: Get all required props
+   - Prefer business emails over personal
 
-3. If information is not found, examine the page content:
-   - Check the text content for relevant information
-   - Look for links and buttons that might lead to the information
-   - Use the element IDs provided (link-N or button-N) for navigation
-   - For direct page navigation, use the path (e.g., "/contact")
+2. Navigation priority:
+   - Direct paths (/contact, /about)
+   - Relevant anchor text
+   - Nav menu items
+   - Generic promising links
 
-4. When suggesting navigation:
-   - If it's a link or button, use ONLY the exact ID provided (e.g., "link-0", "button-1")
-   - If it's a direct path, start with "/" (e.g., "/contact", "/about")
-   - If it's an absolute URL, use the complete URL
-
-Current page information:
+PAGE INFO:
 URL: ${pageStructure.url}
 Title: ${pageStructure.title}
 
-Found email addresses:
-${pageStructure.emails.map((email) => `- ${email}`).join("\n")}
+Emails: ${pageStructure.emails.join(", ")}
 
-Available links:
+Links:
 ${pageStructure.links
-  .map((l) => `- ID: ${l.id}, Text: "${l.text}" (${l.href})`)
-  .join("\n")}
+    .map((l) => `${l.id}: "${l.text}" (${l.href})`)
+    .join("\n")}
 
-Available buttons:
+Buttons:
 ${pageStructure.buttons
-  .map((b) => `- ID: ${b.id}, Text: "${b.text}"`)
-  .join("\n")}
+    .map((b) => `${b.id}: "${b.text}"`)
+    .join("\n")}
 
-Page text content:
+Content:
 ${pageStructure.textContent}
 
-Respond in JSON format with this structure:
+REQUIRED: Return ONLY a JSON object with this structure, no other text:
 {
-  "isDataFound": boolean,  // True if all required information is found
-  "data": object | null,   // The extracted data matching the schema, or null
-  "nextActionElementId": string | null  // ID of link/button to click next, or null if data found
-}
-
-If you find all required information, return it in the "data" field. If not, suggest the most promising link to follow using its exact ID or path.
-`;
+  "isDataFound": boolean,    // true if ALL required data found
+  "data": object | null,     // complete data or null
+  "nextActionElementId": string | null  // link-N/button-N/path or null
+}`;
 
   try {
     const response = await openai.chat.completions.create({

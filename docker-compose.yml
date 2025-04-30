@@ -4,17 +4,40 @@ services:
   scraper:
     build: .
     ports:
-      - "3000:3000"
+      - "6061:6061"
     environment:
       - NODE_ENV=production
+      - PORT=6061
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - USE_PROXY=${USE_PROXY:-false}
       - PROXY_URL=${PROXY_URL:-}
-    # Add healthcheck to ensure the service is running properly
+      - DATABASE_URL=mysql://user:password@db:3306/scraper
+    depends_on:
+      - db
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:6061"]
       interval: 30s
       timeout: 10s
       retries: 3
-    # Restart policy for production
     restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=scraper
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:

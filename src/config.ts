@@ -9,6 +9,10 @@ if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable is required");
 }
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
 export const getOpenAIConfig = () => {
   const config = {
     apiKey: process.env.OPENAI_API_KEY,

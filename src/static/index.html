@@ -195,6 +195,17 @@
           </div>
 
           <div class="form-group">
+            <label for="query">Query:</label>
+            <textarea
+              id="query"
+              name="query"
+              required
+              placeholder="Describe what information you want to extract, e.g. 'Find the company's main contact email address'"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
             <label for="maxSteps">Maximum Steps:</label>
             <input
               type="number"
@@ -216,8 +227,7 @@
         "contact_email": { "type": "string" }
     },
     "required": ["contact_email"]
-}</textarea
-            >
+}</textarea>
           </div>
 
           <button type="submit">Test API</button>
@@ -234,6 +244,7 @@
           e.preventDefault();
 
           const url = document.getElementById("url").value;
+          const query = document.getElementById("query").value;
           const maxSteps = parseInt(document.getElementById("maxSteps").value);
           const targetSchema = JSON.parse(
             document.getElementById("targetSchema").value
@@ -250,6 +261,7 @@
               },
               body: JSON.stringify({
                 url,
+                query,
                 maxSteps,
                 targetSchema,
               }),

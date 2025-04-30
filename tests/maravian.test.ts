@@ -7,6 +7,7 @@ test.describe("Maravian Contact Info", () => {
     const request: ScrapeRequest = {
       url: "https://maravian.com",
       maxSteps: 5,
+      query: "Find the main contact email address for the company, preferably a business email rather than a personal one",
       targetSchema: {
         type: "object",
         properties: {

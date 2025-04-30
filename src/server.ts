@@ -30,11 +30,12 @@ const scrapeHandler: express.RequestHandler = async (
   if (
     !scrapeRequest.url ||
     !scrapeRequest.targetSchema ||
-    !scrapeRequest.maxSteps
+    !scrapeRequest.maxSteps ||
+    !scrapeRequest.query
   ) {
     res.status(400).json({
       isError: true,
-      message: "Missing required fields: url, targetSchema, maxSteps",
+      message: "Missing required fields: url, targetSchema, maxSteps, query",
     });
     return;
   }
@@ -50,7 +51,16 @@ const scrapeHandler: express.RequestHandler = async (
     return;
   }
 
+  if (typeof scrapeRequest.query !== "string" || scrapeRequest.query.trim() === "") {
+    res.status(400).json({
+      isError: true,
+      message: "query must be a non-empty string",
+    });
+    return;
+  }
+
   console.log(`Received scrape request for URL: ${scrapeRequest.url}`);
+  console.log(`Query: ${scrapeRequest.query}`);
 
   try {
     const result = await scrapeWebsite(scrapeRequest);

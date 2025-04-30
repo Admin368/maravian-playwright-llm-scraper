@@ -24,3 +24,4 @@
 - [ ] admin approve user
 - [ ] admin view request history
 - [ ] UI based scraping page with csv format export
+- [ ] api streaming back current steps

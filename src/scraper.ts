@@ -59,10 +59,11 @@ export async function scrapeWebsite(
       });
 
       console.log("Sending content to LLM for analysis...");
-      // 2. Feed to LLM for analysis
+      // 2. Feed to LLM for analysis with the query
       const analysisResult = await analyzeContentAndDecideNextAction(
-        pageStructure, // Send structured data instead of raw HTML
-        request.targetSchema
+        pageStructure,
+        request.targetSchema,
+        request.query
       );
 
       if (analysisResult.isDataFound && analysisResult.data) {

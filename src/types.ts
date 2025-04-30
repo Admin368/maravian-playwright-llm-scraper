@@ -5,6 +5,7 @@ export interface ScrapeRequest {
   url: string; // The starting URL to scrape
   targetSchema: TargetSchema; // Description of the desired data structure
   maxSteps: number; // Maximum navigation/interaction steps
+  query: string; // Natural language description of what data to extract
 }
 
 // Represents the desired data structure/schema provided by the user

@@ -15,7 +15,8 @@ const openai = new OpenAI(getOpenAIConfig());
 
 export async function analyzeContentAndDecideNextAction(
   pageStructure: ExtractedPageStructure,
-  targetSchema: TargetSchema
+  targetSchema: TargetSchema,
+  query: string
 ): Promise<LLMAnalysisResult> {
   console.log("LLM analyzing content...");
 
@@ -24,14 +25,18 @@ export async function analyzeContentAndDecideNextAction(
 You are an AI assistant specialized in extracting structured information from websites.
 Your task is to find information matching the specified schema and determine the best next action.
 
+User Query:
+${query}
+
 Instructions:
 1. Analyze the target schema to understand what information is needed:
 ${JSON.stringify(targetSchema, null, 2)}
 
-2. First check if the required information is already available:
-   - Look for email addresses in the 'emails' array
-   - Check if any email matches the required format and context
+2. First check if the required information matching the user's query is already available:
+   - Look for relevant information in the text content
+   - Check email addresses in the 'emails' array if applicable
    - For contact emails, prefer business/company emails over personal ones
+   - Make sure the extracted data matches both the schema AND the user's query intent
 
 3. If information is not found, examine the page content:
    - Check the text content for relevant information
@@ -66,12 +71,12 @@ ${pageStructure.textContent}
 
 Respond in JSON format with this structure:
 {
-  "isDataFound": boolean,  // True if all required information is found
+  "isDataFound": boolean,  // True if all required information matching the query is found
   "data": object | null,   // The extracted data matching the schema, or null
   "nextActionElementId": string | null  // ID of link/button to click next, or null if data found
 }
 
-If you find all required information, return it in the "data" field. If not, suggest the most promising link to follow using its exact ID or path.
+If you find all required information that matches both the schema AND the query, return it in the "data" field. If not, suggest the most promising link to follow using its exact ID or path.
 `;
 
   try {

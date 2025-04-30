@@ -9,6 +9,14 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 6061;
 
+// Enable CORS
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 // Serve static files from the static directory
 app.use(express.static(path.join(__dirname, "static")));
 
@@ -23,10 +31,16 @@ app.get("/", (req, res) => {
 app.get("/scrape/progress/:id", (req, res) => {
   const scrapeId = req.params.id;
   
+  // Set SSE headers
   res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
-
+  res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+  res.flushHeaders(); // Immediately send headers
+  
+  // Send initial message to establish connection
+  res.write("data: " + JSON.stringify({ message: "Connection established" }) + "\n\n");
+  
   // Store the connection in our global connections map
   progressConnections.set(scrapeId, res);
 

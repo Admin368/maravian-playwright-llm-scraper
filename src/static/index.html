@@ -207,49 +207,43 @@
         background: #4b5563;
         padding: 0.5rem 1rem;
         margin-top: 0.5rem;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
+        position: relative;
+        min-width: 120px;
+        text-align: center;
       }
 
       .copy-btn:hover {
         background: #374151;
       }
 
-      #targetSchema {
-        flex-grow: 1;
+      .copy-feedback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        color: #10b981;
+        font-weight: 500;
       }
 
-      .error-message {
+      .copy-feedback.error {
         color: #ef4444;
-        margin: 1rem 0;
       }
 
-      .raw-response {
-        background: var(--bg-color);
-        padding: 1rem;
-        border-radius: 4px;
-        margin: 1rem 0;
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
 
-      .raw-response h4 {
-        color: #94a3b8;
-        margin-bottom: 0.5rem;
+      .copy-feedback {
+        animation: fadeIn 0.2s ease-in-out;
       }
 
-      .error-help {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--border-color);
+      .progress-messages {
+        scroll-behavior: smooth;
       }
-
-      .error-help h4 {
-        color: #94a3b8;
-        margin-bottom: 0.5rem;
-      }
-
-      .error-help ul {
-        list-style-type: disc;
-        margin-left: 1.5rem;
-        color: #94a3b8;
+      .output-content {
+        scroll-behavior: smooth;
       }
     </style>
   </head>
@@ -336,6 +330,13 @@
       const progressDiv = document.getElementById('progress');
       const progressMessages = document.getElementById('progress-messages');
 
+      // Function to get the base URL that handles various hosting scenarios
+      function getBaseUrl() {
+        const url = new URL(window.location.href);
+        // Remove the last part of the path (e.g., /index.html) if it exists
+        return url.origin + url.pathname.replace(/\/[^/]*$/, '');
+      }
+
       function setLoadingState(isLoading) {
         const btnText = searchBtn.querySelector('span');
         if (isLoading) {
@@ -352,7 +353,17 @@
         messageElement.className = 'progress-message';
         messageElement.textContent = message;
         progressMessages.appendChild(messageElement);
-        progressMessages.scrollTop = progressMessages.scrollHeight;
+        // Smooth scroll to the bottom
+        progressMessages.scrollTo({
+          top: progressMessages.scrollHeight,
+          behavior: 'smooth'
+        });
+        // Also scroll the output content to show new messages
+        const outputContent = document.getElementById('outputContent');
+        outputContent.scrollTo({
+          top: outputContent.scrollHeight,
+          behavior: 'smooth'
+        });
       }
 
       function displayResult(data) {
@@ -363,6 +374,7 @@
           if (data.message.includes('Raw response:')) {
             const [errorMsg, rawResponse] = data.message.split('Raw response:');
             errorDetails = `
+
               <p class="error-message">${errorMsg}</p>
               <div class="raw-response">
                 <h4>LLM Raw Response:</h4>
@@ -394,26 +406,51 @@
               <h3>Success!</h3>
               <p>${data.message}</p>
               <pre><code>${formattedData}</code></pre>
-              <button class="copy-btn" onclick="copyToClipboard('${formattedData.replace(/'/g, "\\'")}')">
-                Copy Result
-              </button>
+              <div class="copy-container">
+                <button class="copy-btn" data-content='${formattedData.replace(/'/g, "\\'")}'>
+                  Copy Result
+                </button>
+              </div>
             </div>
           `;
+
+          // Add click handler after creating the button
+          const copyBtn = resultDiv.querySelector('.copy-btn');
+          copyBtn.addEventListener('click', function() {
+            const content = this.getAttribute('data-content');
+            copyToClipboard(content);
+          });
         }
+
+        // After updating the content, scroll to show the result
+        setTimeout(() => {
+          const outputContent = document.getElementById('outputContent');
+          outputContent.scrollTo({
+            top: outputContent.scrollHeight,
+            behavior: 'smooth'
+          });
+        }, 100); // Small delay to ensure content is rendered
       }
 
       function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-          const copyBtn = document.querySelector('.copy-btn');
-          const originalText = copyBtn.textContent;
-          copyBtn.textContent = 'Copied!';
-          setTimeout(() => {
-            copyBtn.textContent = originalText;
-          }, 2000);
-        });
+        const copyBtn = document.querySelector('.copy-btn');
+        navigator.clipboard.writeText(text)
+          .then(() => {
+            copyBtn.innerHTML = `<div class="copy-feedback">✓ Copied response!</div>`;
+          })
+          .catch(() => {
+            copyBtn.innerHTML = `<div class="copy-feedback error">Failed to copy</div>`;
+          })
+          .finally(() => {
+            setTimeout(() => {
+              copyBtn.textContent = 'Copy Result';
+            }, 2000);
+          });
       }
 
       let eventSource = null;
+      let reconnectAttempts = 0;
+      const MAX_RECONNECT_ATTEMPTS = 3;
 
       function cleanupEventSource() {
         if (eventSource) {
@@ -422,16 +459,58 @@
         }
       }
 
-      function getBaseUrl() {
-        // Get the current URL without the path
-        const url = new URL(window.location.href);
-        return url.origin + url.pathname.replace(/\/[^/]*$/, '');
+      function setupEventSource(scrapeId) {
+        cleanupEventSource();
+        
+        eventSource = new EventSource(`${getBaseUrl()}/scrape/progress/${scrapeId}`);
+        
+        eventSource.onopen = () => {
+          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+          console.log('SSE connection established');
+        };
+        
+        eventSource.onmessage = (event) => {
+          const update = JSON.parse(event.data);
+          try {
+            const messageData = JSON.parse(update.message);
+            if (messageData.isComplete) {
+              // Final result received
+              displayResult(messageData);
+              setLoadingState(false);
+              cleanupEventSource();
+            } else {
+              addProgressMessage(update.message);
+            }
+          } catch {
+            // Regular progress message
+            addProgressMessage(update.message);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error('SSE Error:', error);
+          
+          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
+            addProgressMessage(`Connection lost. Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+            
+            // Wait before attempting to reconnect
+            setTimeout(() => {
+              setupEventSource(scrapeId);
+            }, 2000 * reconnectAttempts); // Exponential backoff
+          } else {
+            addProgressMessage("Failed to maintain connection to server. Please try again.");
+            setLoadingState(false);
+            cleanupEventSource();
+          }
+        };
       }
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         setLoadingState(true);
         cleanupEventSource();
+        reconnectAttempts = 0; // Reset reconnect attempts
         
         // Clear previous progress and results
         progressMessages.innerHTML = '';
@@ -455,35 +534,17 @@
             body: JSON.stringify(formData)
           });
 
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
           const data = await response.json();
           
           if (data.scrapeId) {
-            // Connect to SSE endpoint for progress updates using relative URL
-            eventSource = new EventSource(`${getBaseUrl()}/scrape/progress/${data.scrapeId}`);
-            
-            eventSource.onmessage = (event) => {
-              const update = JSON.parse(event.data);
-              try {
-                const messageData = JSON.parse(update.message);
-                if (messageData.isComplete) {
-                  // Final result received
-                  displayResult(messageData);
-                  setLoadingState(false);
-                  cleanupEventSource();
-                } else {
-                  addProgressMessage(update.message);
-                }
-              } catch {
-                // Regular progress message
-                addProgressMessage(update.message);
-              }
-            };
-
-            eventSource.onerror = () => {
-              addProgressMessage("Lost connection to server");
-              setLoadingState(false);
-              cleanupEventSource();
-            };
+            // Initialize SSE connection with retry logic
+            setupEventSource(data.scrapeId);
+          } else {
+            throw new Error('No scrapeId received from server');
           }
         } catch (error) {
           displayResult({

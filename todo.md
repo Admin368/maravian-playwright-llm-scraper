@@ -25,3 +25,4 @@
 - [ ] admin view request history
 - [ ] UI based scraping page with csv format export
 - [ ] api streaming back current steps
+- [] a version where the page only takes input query and sight and the first prompt it to detrmin the schema then the api is fed with the schema and the rest works the same

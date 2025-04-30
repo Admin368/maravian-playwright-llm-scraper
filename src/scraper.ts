@@ -2,28 +2,31 @@
 import { chromium, Browser, Page } from "playwright";
 import { ScrapeRequest, ScrapeResponse } from "./types";
 import { analyzeContentAndDecideNextAction } from "./llm";
+import { sendProgress } from "./server";
 
 export async function scrapeWebsite(
-  request: ScrapeRequest
+  request: ScrapeRequest,
+  scrapeId: string
 ): Promise<ScrapeResponse> {
   let browser: Browser | null = null;
   let page: Page | null = null;
   let currentStep = 0;
 
   try {
+    sendProgress(scrapeId, "Launching browser...");
     browser = await chromium.launch();
     const context = await browser.newContext();
     page = await context.newPage();
 
-    console.log(`Navigating to ${request.url}...`);
-    await page.goto(request.url, { waitUntil: "domcontentloaded" }); // Start with initial URL
+    sendProgress(scrapeId, `Navigating to ${request.url}...`);
+    await page.goto(request.url, { waitUntil: "domcontentloaded" });
 
     while (currentStep < request.maxSteps) {
       currentStep++;
-      console.log(`Step ${currentStep}/${request.maxSteps}`);
+      sendProgress(scrapeId, `Step ${currentStep}/${request.maxSteps}`);
 
-      // 1. Get page content/structure (simplified for now)
-      const pageContent = await page.content(); // Consider getting more structured data
+      // Get page content/structure
+      const pageContent = await page.content();
       const pageStructure = await page.evaluate(() => {
         // Extract links and interactive elements
         const links = Array.from(document.querySelectorAll("a[href]")).map(
@@ -58,8 +61,7 @@ export async function scrapeWebsite(
         };
       });
 
-      console.log("Sending content to LLM for analysis...");
-      // 2. Feed to LLM for analysis with the query
+      sendProgress(scrapeId, "Analyzing page content with LLM...");
       const analysisResult = await analyzeContentAndDecideNextAction(
         pageStructure,
         request.targetSchema,
@@ -67,7 +69,7 @@ export async function scrapeWebsite(
       );
 
       if (analysisResult.isDataFound && analysisResult.data) {
-        console.log("LLM found the requested information.");
+        sendProgress(scrapeId, "Information found successfully!");
         return {
           isError: false,
           message: "Information extracted successfully.",
@@ -75,57 +77,37 @@ export async function scrapeWebsite(
         };
       }
 
-      if (
-        !analysisResult.nextActionElementId ||
-        currentStep >= request.maxSteps
-      ) {
-        console.log("LLM decided no further action or max steps reached.");
-        const message =
-          currentStep >= request.maxSteps
-            ? `Max steps (${request.maxSteps}) reached without finding the information.`
-            : "LLM could not determine a next step or information not found.";
+      if (!analysisResult.nextActionElementId || currentStep >= request.maxSteps) {
+        const message = currentStep >= request.maxSteps
+          ? `Max steps (${request.maxSteps}) reached without finding the information.`
+          : "LLM could not determine a next step or information not found.";
+        sendProgress(scrapeId, message);
         return {
           isError: true,
           message: message,
         };
       }
 
-      // 3. Perform the next action (Clicking)
-      console.log(
-        `LLM suggested clicking element ID: ${analysisResult.nextActionElementId}`
-      );
-      const selector = `[data-llm-id="${analysisResult.nextActionElementId}"]`; // We need a way to map LLM ID back to selector
-
-      // *** We need to add unique IDs to elements for the LLM to reference ***
-      // For now, let's assume the LLM gives back an ID we assigned during extraction (like link-0, button-1)
-      let elementSelector = "";
+      // Perform the next action
+      sendProgress(scrapeId, `Navigating to ${analysisResult.nextActionElementId}...`);
+      
+      // Handle different types of navigation
       if (analysisResult.nextActionElementId.startsWith("link-")) {
-        const index = parseInt(
-          analysisResult.nextActionElementId.split("-")[1],
-          10
-        );
+        const index = parseInt(analysisResult.nextActionElementId.split("-")[1], 10);
         const link = pageStructure.links[index];
         if (link?.href) {
-          // Attempt to find a unique selector for the link
-          elementSelector = `a[href="${link.href}"]:has-text("${link.text}")`; // Example selector - might need refinement
-          console.log(`Attempting to click link: ${elementSelector}`);
+          const elementSelector = `a[href="${link.href}"]:has-text("${link.text}")`;
           try {
             await page.click(elementSelector, { timeout: 5000 });
-            await page.waitForLoadState("domcontentloaded", { timeout: 10000 }); // Wait for navigation
+            await page.waitForLoadState("domcontentloaded", { timeout: 10000 });
           } catch (clickError) {
-            console.error(
-              `Failed to click link selector: ${elementSelector}`,
-              clickError
-            );
+            sendProgress(scrapeId, `Failed to click link: ${elementSelector}`);
             return {
               isError: true,
               message: `Failed to click element suggested by LLM: ${analysisResult.nextActionElementId}`,
             };
           }
         } else {
-          console.warn(
-            `Could not find href for ${analysisResult.nextActionElementId}`
-          );
           return {
             isError: true,
             message: `LLM suggested clicking an invalid link element: ${analysisResult.nextActionElementId}`,
@@ -138,7 +120,7 @@ export async function scrapeWebsite(
         );
         const button = pageStructure.buttons[index];
         if (button) {
-          elementSelector = `button:has-text("${button.text}") >> nth=${index}`; // Example selector - might need refinement
+          const elementSelector = `button:has-text("${button.text}") >> nth=${index}`; // Example selector - might need refinement
           console.log(`Attempting to click button: ${elementSelector}`);
           try {
             await page.click(elementSelector, { timeout: 5000 });
@@ -163,57 +145,39 @@ export async function scrapeWebsite(
           };
         }
       } else if (analysisResult.nextActionElementId.startsWith("/")) {
-        // Handle direct paths
-        const newUrl = new URL(
-          analysisResult.nextActionElementId,
-          pageStructure.url
-        ).toString();
-        console.log(`Navigating to path: ${newUrl}`);
+        const newUrl = new URL(analysisResult.nextActionElementId, pageStructure.url).toString();
+        sendProgress(scrapeId, `Navigating to path: ${newUrl}`);
         try {
-          await page.goto(newUrl, {
-            waitUntil: "domcontentloaded",
-            timeout: 10000,
-          });
+          await page.goto(newUrl, { waitUntil: "domcontentloaded", timeout: 10000 });
         } catch (navError) {
-          console.error(`Failed to navigate to: ${newUrl}`, navError);
           return {
             isError: true,
             message: `Failed to navigate to path: ${analysisResult.nextActionElementId}`,
           };
         }
       } else if (analysisResult.nextActionElementId.startsWith("http")) {
-        // Handle absolute URLs
-        console.log(`Navigating to URL: ${analysisResult.nextActionElementId}`);
+        sendProgress(scrapeId, `Navigating to URL: ${analysisResult.nextActionElementId}`);
         try {
           await page.goto(analysisResult.nextActionElementId, {
             waitUntil: "domcontentloaded",
             timeout: 10000,
           });
         } catch (navError) {
-          console.error(
-            `Failed to navigate to: ${analysisResult.nextActionElementId}`,
-            navError
-          );
           return {
             isError: true,
             message: `Failed to navigate to URL: ${analysisResult.nextActionElementId}`,
           };
         }
       } else {
-        console.warn(
-          `LLM suggested clicking unknown element type: ${analysisResult.nextActionElementId}`
-        );
         return {
           isError: true,
           message: `LLM suggested clicking an unknown element type: ${analysisResult.nextActionElementId}`,
         };
       }
 
-      // Add delay or wait for specific network activity if needed
-      await page.waitForTimeout(1000); // Simple delay
+      await page.waitForTimeout(1000);
     }
 
-    // If loop finishes without returning, max steps were reached.
     return {
       isError: true,
       message: `Max steps (${request.maxSteps}) reached without finding the information.`,
@@ -230,7 +194,7 @@ export async function scrapeWebsite(
     }
     if (browser) {
       await browser.close();
-      console.log("Browser closed.");
+      sendProgress(scrapeId, "Browser closed.");
     }
   }
 }

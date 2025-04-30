@@ -81,7 +81,7 @@ If you find all required information that matches both the schema AND the query,
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4", // Using GPT-4 for better accuracy
+      model: "gpt-4o-mini", // Using GPT-4 for better accuracy
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1, // Very low temperature for consistent results
     });

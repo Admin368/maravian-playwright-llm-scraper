@@ -163,6 +163,32 @@
       .docs-link:hover {
         text-decoration: underline;
       }
+
+      /* Add to existing styles */
+      .progress-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        border-left: 4px solid #2563eb;
+      }
+
+      #progress-messages {
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .progress-message {
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .progress-message:last-child {
+        border-bottom: none;
+      }
     </style>
   </head>
   <body>
@@ -226,6 +252,11 @@
         </form>
       </div>
 
+      <div id="progress" class="progress-card" style="display: none;">
+        <h3>Progress</h3>
+        <div id="progress-messages"></div>
+      </div>
+
       <div id="result"></div>
 
       <a href="/docs.html" class="docs-link">View API Documentation</a>
@@ -235,45 +266,8 @@
       const form = document.getElementById('searchForm');
       const searchBtn = document.getElementById('searchBtn');
       const resultDiv = document.getElementById('result');
-
-      // Example schemas that users can try
-      const exampleSchemas = {
-        simple: {
-          type: "object",
-          properties: {
-            email: { type: "string" }
-          },
-          required: ["email"]
-        },
-        contact: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            position: { type: "string" },
-            email: { type: "string" },
-            phone: { type: "string" }
-          },
-          required: ["name", "email"]
-        },
-        projects: {
-          type: "object",
-          properties: {
-            projects: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  technologies: { type: "array", items: { type: "string" } }
-                },
-                required: ["title", "description"]
-              }
-            }
-          },
-          required: ["projects"]
-        }
-      };
+      const progressDiv = document.getElementById('progress');
+      const progressMessages = document.getElementById('progress-messages');
 
       function setLoadingState(isLoading) {
         const btnText = searchBtn.querySelector('span');
@@ -284,6 +278,14 @@
           searchBtn.disabled = false;
           btnText.innerHTML = 'Search';
         }
+      }
+
+      function addProgressMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'progress-message';
+        messageElement.textContent = message;
+        progressMessages.appendChild(messageElement);
+        progressMessages.scrollTop = progressMessages.scrollHeight;
       }
 
       function displayResult(data) {
@@ -322,9 +324,24 @@
         });
       }
 
+      let eventSource = null;
+
+      function cleanupEventSource() {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+      }
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         setLoadingState(true);
+        cleanupEventSource();
+        
+        // Clear previous progress and results
+        progressMessages.innerHTML = '';
+        resultDiv.style.display = 'none';
+        progressDiv.style.display = 'block';
 
         const formData = {
           url: document.getElementById('url').value,
@@ -334,6 +351,7 @@
         };
 
         try {
+          // Start the scraping process
           const response = await fetch('/scrape', {
             method: 'POST',
             headers: {
@@ -343,16 +361,46 @@
           });
 
           const data = await response.json();
-          displayResult(data);
+          
+          if (data.scrapeId) {
+            // Connect to SSE endpoint for progress updates
+            eventSource = new EventSource(`/scrape/progress/${data.scrapeId}`);
+            
+            eventSource.onmessage = (event) => {
+              const update = JSON.parse(event.data);
+              try {
+                const messageData = JSON.parse(update.message);
+                if (messageData.isComplete) {
+                  // Final result received
+                  displayResult(messageData);
+                  setLoadingState(false);
+                  cleanupEventSource();
+                } else {
+                  addProgressMessage(update.message);
+                }
+              } catch {
+                // Regular progress message
+                addProgressMessage(update.message);
+              }
+            };
+
+            eventSource.onerror = () => {
+              addProgressMessage("Lost connection to server");
+              setLoadingState(false);
+              cleanupEventSource();
+            };
+          }
         } catch (error) {
           displayResult({
             isError: true,
             message: `Request failed: ${error.message}`
           });
-        } finally {
           setLoadingState(false);
         }
       });
+
+      // Cleanup EventSource when leaving the page
+      window.addEventListener('beforeunload', cleanupEventSource);
     </script>
   </body>
 </html>

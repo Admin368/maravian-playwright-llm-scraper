@@ -40,7 +40,7 @@ export interface ScrapeResponse {
   isError: boolean;
   message: string;
   data?: any; // Should ideally match the TargetSchema structure if successful
-  history?: PageHistory[];  // Add history to response
+  history?: PageHistory[]; // Add history to response
 }
 
 // Represents the history of pages visited during the scraping process
@@ -50,8 +50,8 @@ export interface PageHistory {
   textContent: string;
   emails: string[];
   timestamp: string;
-  clickedElement: string | null;  // The element that was clicked to reach this page
-  nextActionElementId: string | null;  // The next action suggested by LLM
+  clickedElement: string | null; // The element that was clicked to reach this page
+  nextActionElementId: string | null; // The next action suggested by LLM
 }
 
 // --- Data structures for interaction between scraper and LLM ---

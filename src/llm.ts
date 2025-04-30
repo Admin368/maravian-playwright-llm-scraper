@@ -23,25 +23,30 @@ export async function analyzeContentAndDecideNextAction(
   console.log("LLM analyzing content...");
 
   // Create a summary of previously visited pages
-  const historySummary = pageHistory.map((page, index) => `
+  const historySummary = pageHistory
+    .map(
+      (page, index) => `
 Page ${index + 1}:
 URL: ${page.url}
 Title: ${page.title}
-Accessed via: ${page.clickedElement || 'Initial page'}
+Accessed via: ${page.clickedElement || "Initial page"}
 Key information found:
 ${page.textContent.slice(0, 300)}...
-Emails found: ${page.emails.join(', ')}
-`).join('\n');
+Emails found: ${page.emails.join(", ")}
+`
+    )
+    .join("\n");
 
   // For email-related queries, prioritize searching for contact pages and "mailto:" links
-  const isEmailQuery = query.toLowerCase().includes('email') || 
-                      query.toLowerCase().includes('contact') || 
-                      query.toLowerCase().includes('reach');
+  const isEmailQuery =
+    query.toLowerCase().includes("email") ||
+    query.toLowerCase().includes("contact") ||
+    query.toLowerCase().includes("reach");
 
   // Check if we've already found any email addresses in our page history
   const allEmailsFound = pageHistory
-    .flatMap(page => page.emails)
-    .filter(email => email && email.includes('@') && email.includes('.'));
+    .flatMap((page) => page.emails)
+    .filter((email) => email && email.includes("@") && email.includes("."));
 
   // Prepare the prompt for the LLM
   const prompt = `
@@ -70,21 +75,30 @@ ${historySummary}
    - If it's an absolute URL, use the complete URL
    - DO NOT suggest navigation to URLs that appear in the page history
 
-${isEmailQuery ? `
+${
+  isEmailQuery
+    ? `
 IMPORTANT: This query is requesting email contact information.
 - Look for "Contact", "Contact Us", or "About" links that might lead to contact information
-- Check if there are any existing emails found across all pages: ${allEmailsFound.join(', ')}
+- Check if there are any existing emails found across all pages: ${allEmailsFound.join(
+        ", "
+      )}
 - If an email is found within a mailto: link, make sure to extract it correctly
 - If you see patterns like "name[at]domain[dot]com", interpret them as actual email addresses
 - If you find any contact form, note it as an alternative contact method
-` : ''}
+`
+    : ""
+}
 
 Current page information:
 URL: ${pageStructure.url}
 Title: ${pageStructure.title}
 
 Found email addresses:
-${pageStructure.emails.map((email) => `- ${email}`).join("\n") || "No email addresses found in page content"}
+${
+  pageStructure.emails.map((email) => `- ${email}`).join("\n") ||
+  "No email addresses found in page content"
+}
 
 Available links:
 ${pageStructure.links
@@ -96,8 +110,12 @@ ${pageStructure.buttons
   .map((b) => `- ID: ${b.id}, Text: "${b.text}"`)
   .join("\n")}
 
-${isEmailQuery ? `Special contact scan: Look for any contact information in these special areas:
-${pageStructure.contactText || "No targeted contact sections found"}` : ''}
+${
+  isEmailQuery
+    ? `Special contact scan: Look for any contact information in these special areas:
+${pageStructure.contactText || "No targeted contact sections found"}`
+    : ""
+}
 
 Page text content:
 ${pageStructure.textContent}
@@ -126,7 +144,9 @@ Respond in JSON format with this structure:
 
     // Try to extract JSON from the response if it's wrapped in markdown
     let jsonContent = llmResponseContent;
-    const jsonMatch = llmResponseContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const jsonMatch = llmResponseContent.match(
+      /```(?:json)?\s*([\s\S]*?)\s*```/
+    );
     if (jsonMatch) {
       jsonContent = jsonMatch[1];
     }
@@ -136,23 +156,36 @@ Respond in JSON format with this structure:
 
       // Enhanced validation
       if (typeof parsedResult.isDataFound !== "boolean") {
-        throw new Error("Invalid response format: missing or invalid isDataFound property");
-      }
-      
-      if (parsedResult.isDataFound && !parsedResult.data) {
-        throw new Error("Invalid response format: isDataFound is true but no data provided");
+        throw new Error(
+          "Invalid response format: missing or invalid isDataFound property"
+        );
       }
 
-      if (!parsedResult.isDataFound && 
-          typeof parsedResult.nextActionElementId !== "string" && 
-          parsedResult.nextActionElementId !== null) {
-        throw new Error("Invalid response format: missing or invalid nextActionElementId when no data found");
+      if (parsedResult.isDataFound && !parsedResult.data) {
+        throw new Error(
+          "Invalid response format: isDataFound is true but no data provided"
+        );
+      }
+
+      if (
+        !parsedResult.isDataFound &&
+        typeof parsedResult.nextActionElementId !== "string" &&
+        parsedResult.nextActionElementId !== null
+      ) {
+        throw new Error(
+          "Invalid response format: missing or invalid nextActionElementId when no data found"
+        );
       }
 
       // For email queries, if we have any emails in page history but the LLM didn't find them,
       // add them to the response manually
-      if (isEmailQuery && allEmailsFound.length > 0 && 
-          (!parsedResult.data || !parsedResult.data.email || parsedResult.data.email === '')) {
+      if (
+        isEmailQuery &&
+        allEmailsFound.length > 0 &&
+        (!parsedResult.data ||
+          !parsedResult.data.email ||
+          parsedResult.data.email === "")
+      ) {
         parsedResult.isDataFound = true;
         if (!parsedResult.data) parsedResult.data = {};
         parsedResult.data.email = allEmailsFound[0]; // Use the first email we found
@@ -162,7 +195,9 @@ Respond in JSON format with this structure:
       return parsedResult;
     } catch (parseError: any) {
       console.error("Failed to parse LLM response:", parseError);
-      throw new Error(`Failed to parse LLM response: ${parseError.message}\nRaw response: ${llmResponseContent}`);
+      throw new Error(
+        `Failed to parse LLM response: ${parseError.message}\nRaw response: ${llmResponseContent}`
+      );
     }
   } catch (error: any) {
     console.error("Error interacting with LLM:", error);
@@ -178,19 +213,19 @@ Respond in JSON format with this structure:
 
 export async function determineSchema(query: string): Promise<any> {
   const messages = [
-    { 
+    {
       role: "system" as const,
       content: `You are a schema generator that converts natural language queries into JSON Schema objects.
 Your task is to analyze the user's query and determine what data structure would be most appropriate to store the requested information.
 Only respond with a valid JSON Schema object that defines the structure.
-Keep the schema focused on the core information requested.` 
+Keep the schema focused on the core information requested.`,
     },
     {
       role: "user" as const,
       content: `Given this search query: "${query}"
 Generate a JSON Schema that would be appropriate for storing the information being requested.
-The schema should be an object type with appropriate properties and required fields.`
-    }
+The schema should be an object type with appropriate properties and required fields.`,
+    },
   ];
 
   try {
@@ -202,9 +237,9 @@ The schema should be an object type with appropriate properties and required fie
 
     const schemaText = response.choices[0]?.message?.content;
     if (!schemaText) {
-      throw new Error('No schema generated');
+      throw new Error("No schema generated");
     }
-    
+
     return JSON.parse(schemaText);
   } catch (error) {
     console.error("Error generating schema:", error);
@@ -212,9 +247,9 @@ The schema should be an object type with appropriate properties and required fie
     return {
       type: "object",
       properties: {
-        result: { type: "string" }
+        result: { type: "string" },
       },
-      required: ["result"]
+      required: ["result"],
     };
   }
 }

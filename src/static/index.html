@@ -299,7 +299,7 @@
 }</textarea>
           </div>
         </form>
-        <a href="/docs.html" style="color: white;">View API Documentation</a>
+        <a href="docs.html" style="color: white;">View API Documentation</a>
       </div>
 
       <div class="output-panel">
@@ -422,6 +422,12 @@
         }
       }
 
+      function getBaseUrl() {
+        // Get the current URL without the path
+        const url = new URL(window.location.href);
+        return url.origin + url.pathname.replace(/\/[^/]*$/, '');
+      }
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         setLoadingState(true);
@@ -440,8 +446,8 @@
         };
 
         try {
-          // Start the scraping process
-          const response = await fetch('/scrape', {
+          // Start the scraping process using relative URL
+          const response = await fetch(`${getBaseUrl()}/scrape`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -452,8 +458,8 @@
           const data = await response.json();
           
           if (data.scrapeId) {
-            // Connect to SSE endpoint for progress updates
-            eventSource = new EventSource(`/scrape/progress/${data.scrapeId}`);
+            // Connect to SSE endpoint for progress updates using relative URL
+            eventSource = new EventSource(`${getBaseUrl()}/scrape/progress/${data.scrapeId}`);
             
             eventSource.onmessage = (event) => {
               const update = JSON.parse(event.data);

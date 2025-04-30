@@ -47,8 +47,11 @@ COPY . .
 # Build TypeScript code
 RUN pnpm build
 
-# Expose port
-EXPOSE 3000
+# Make sure static files are copied to dist
+RUN mkdir -p dist/static && cp -r src/static/* dist/static/
+
+# Expose port from environment or default to 6061
+EXPOSE ${PORT:-6061}
 
 # Start the application
 CMD ["pnpm", "start"]

@@ -5,6 +5,7 @@ import {
   TargetSchema,
   LLMAnalysisResult,
   ExtractedPageStructure,
+  PageHistory,
 } from "./types";
 import { getOpenAIConfig } from "./config";
 
@@ -16,9 +17,21 @@ const openai = new OpenAI(getOpenAIConfig());
 export async function analyzeContentAndDecideNextAction(
   pageStructure: ExtractedPageStructure,
   targetSchema: TargetSchema,
-  query: string
+  query: string,
+  pageHistory: PageHistory[] = []
 ): Promise<LLMAnalysisResult> {
   console.log("LLM analyzing content...");
+
+  // Create a summary of previously visited pages
+  const historySummary = pageHistory.map((page, index) => `
+Page ${index + 1}:
+URL: ${page.url}
+Title: ${page.title}
+Accessed via: ${page.clickedElement || 'Initial page'}
+Key information found:
+${page.textContent.slice(0, 300)}...
+Emails found: ${page.emails.join(', ')}
+`).join('\n');
 
   // Prepare the prompt for the LLM
   const prompt = `
@@ -32,22 +45,20 @@ Instructions:
 1. Analyze the target schema to understand what information is needed:
 ${JSON.stringify(targetSchema, null, 2)}
 
-2. First check if the required information matching the user's query is already available:
-   - Look for relevant information in the text content
-   - Check email addresses in the 'emails' array if applicable
-   - For contact emails, prefer business/company emails over personal ones
-   - Make sure the extracted data matches both the schema AND the user's query intent
+2. Review the history of previously visited pages and their information:
+${historySummary}
 
-3. If information is not found, examine the page content:
-   - Check the text content for relevant information
-   - Look for links and buttons that might lead to the information
-   - Use the element IDs provided (link-N or button-N) for navigation
-   - For direct page navigation, use the path (e.g., "/contact")
+3. Now analyze the current page:
+   - Check if combining information from previous pages and current page satisfies the query
+   - Look for new relevant information in the current page
+   - Avoid suggesting navigation to already visited pages
+   - Make sure the extracted data matches both the schema AND the user's query intent
 
 4. When suggesting navigation:
    - If it's a link or button, use ONLY the exact ID provided (e.g., "link-0", "button-1")
    - If it's a direct path, start with "/" (e.g., "/contact", "/about")
    - If it's an absolute URL, use the complete URL
+   - DO NOT suggest navigation to URLs that appear in the page history
 
 Current page information:
 URL: ${pageStructure.url}
@@ -73,11 +84,9 @@ Respond in JSON format with this structure:
 {
   "isDataFound": boolean,  // True if all required information matching the query is found
   "data": object | null,   // The extracted data matching the schema, or null
-  "nextActionElementId": string | null  // ID of link/button to click next, or null if data found
-}
-
-If you find all required information that matches both the schema AND the query, return it in the "data" field. If not, suggest the most promising link to follow using its exact ID or path.
-`;
+  "nextActionElementId": string | null,  // ID of link/button to click next, or null if data found
+  "reasoning": string  // Brief explanation of why this decision was made
+}`;
 
   try {
     const response = await openai.chat.completions.create({

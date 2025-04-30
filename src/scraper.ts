@@ -1,6 +1,6 @@
 // Basic structure for Playwright scraping logic
 import { chromium, Browser, Page } from "playwright";
-import { ScrapeRequest, ScrapeResponse } from "./types";
+import { ScrapeRequest, ScrapeResponse, PageHistory } from "./types";
 import { analyzeContentAndDecideNextAction } from "./llm";
 import { sendProgress } from "./server";
 
@@ -11,6 +11,7 @@ export async function scrapeWebsite(
   let browser: Browser | null = null;
   let page: Page | null = null;
   let currentStep = 0;
+  let pageHistory: PageHistory[] = [];
 
   try {
     sendProgress(scrapeId, "Launching browser...");
@@ -61,12 +62,29 @@ export async function scrapeWebsite(
         };
       });
 
+      // Add current page to history
+      pageHistory.push({
+        url: pageStructure.url,
+        title: pageStructure.title,
+        textContent: pageStructure.textContent,
+        emails: pageStructure.emails,
+        timestamp: new Date().toISOString(),
+        clickedElement: pageHistory.length > 0 ? pageHistory[pageHistory.length - 1].nextActionElementId : null,
+        nextActionElementId: null // Will be updated after LLM analysis
+      });
+
       sendProgress(scrapeId, "Analyzing page content with LLM...");
       const analysisResult = await analyzeContentAndDecideNextAction(
         pageStructure,
         request.targetSchema,
-        request.query
+        request.query,
+        pageHistory
       );
+
+      // Update the last history entry with the next action
+      if (pageHistory.length > 0) {
+        pageHistory[pageHistory.length - 1].nextActionElementId = analysisResult.nextActionElementId;
+      }
 
       if (analysisResult.isDataFound && analysisResult.data) {
         sendProgress(scrapeId, "Information found successfully!");
@@ -74,6 +92,7 @@ export async function scrapeWebsite(
           isError: false,
           message: "Information extracted successfully.",
           data: analysisResult.data,
+          history: pageHistory // Include history in the response
         };
       }
 
@@ -85,7 +104,32 @@ export async function scrapeWebsite(
         return {
           isError: true,
           message: message,
+          history: pageHistory // Include history even in error case
         };
+      }
+
+      // Check if we're trying to visit a page we've already been to
+      if (analysisResult.nextActionElementId) {
+        let nextUrl = "";
+        if (analysisResult.nextActionElementId.startsWith("http")) {
+          nextUrl = analysisResult.nextActionElementId;
+        } else if (analysisResult.nextActionElementId.startsWith("/")) {
+          nextUrl = new URL(analysisResult.nextActionElementId, pageStructure.url).toString();
+        } else {
+          // For links and buttons, get the target URL if possible
+          const linkMatch = analysisResult.nextActionElementId.startsWith("link-") 
+            ? pageStructure.links[parseInt(analysisResult.nextActionElementId.split("-")[1], 10)]
+            : null;
+          if (linkMatch?.href) {
+            nextUrl = new URL(linkMatch.href, pageStructure.url).toString();
+          }
+        }
+
+        // Check if we've already visited this URL
+        if (nextUrl && pageHistory.some(h => h.url === nextUrl)) {
+          sendProgress(scrapeId, `Already visited ${nextUrl}, skipping...`);
+          continue;
+        }
       }
 
       // Perform the next action
@@ -105,12 +149,14 @@ export async function scrapeWebsite(
             return {
               isError: true,
               message: `Failed to click element suggested by LLM: ${analysisResult.nextActionElementId}`,
+              history: pageHistory // Include history even in error case
             };
           }
         } else {
           return {
             isError: true,
             message: `LLM suggested clicking an invalid link element: ${analysisResult.nextActionElementId}`,
+            history: pageHistory // Include history even in error case
           };
         }
       } else if (analysisResult.nextActionElementId.startsWith("button-")) {
@@ -133,6 +179,7 @@ export async function scrapeWebsite(
             return {
               isError: true,
               message: `Failed to click element suggested by LLM: ${analysisResult.nextActionElementId}`,
+              history: pageHistory // Include history even in error case
             };
           }
         } else {
@@ -142,6 +189,7 @@ export async function scrapeWebsite(
           return {
             isError: true,
             message: `LLM suggested clicking an invalid button element: ${analysisResult.nextActionElementId}`,
+            history: pageHistory // Include history even in error case
           };
         }
       } else if (analysisResult.nextActionElementId.startsWith("/")) {
@@ -153,6 +201,7 @@ export async function scrapeWebsite(
           return {
             isError: true,
             message: `Failed to navigate to path: ${analysisResult.nextActionElementId}`,
+            history: pageHistory // Include history even in error case
           };
         }
       } else if (analysisResult.nextActionElementId.startsWith("http")) {
@@ -166,12 +215,14 @@ export async function scrapeWebsite(
           return {
             isError: true,
             message: `Failed to navigate to URL: ${analysisResult.nextActionElementId}`,
+            history: pageHistory // Include history even in error case
           };
         }
       } else {
         return {
           isError: true,
           message: `LLM suggested clicking an unknown element type: ${analysisResult.nextActionElementId}`,
+          history: pageHistory // Include history even in error case
         };
       }
 
@@ -181,12 +232,14 @@ export async function scrapeWebsite(
     return {
       isError: true,
       message: `Max steps (${request.maxSteps}) reached without finding the information.`,
+      history: pageHistory // Include history even in error case
     };
   } catch (error: any) {
     console.error("Error during scraping process:", error);
     return {
       isError: true,
       message: `Scraping failed: ${error.message}`,
+      history: pageHistory // Include history even in error case
     };
   } finally {
     if (page) {

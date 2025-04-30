@@ -1,9 +1,4 @@
-import express, {
-  Request,
-  Response,
-  Application,
-  RequestHandler,
-} from "express";
+import express from "express";
 import dotenv from "dotenv";
 import { ScrapeRequest, ScrapeResponse } from "./types";
 import { scrapeWebsite } from "./scraper";
@@ -11,8 +6,8 @@ import path from "path";
 
 dotenv.config();
 
-const app: Application = express();
-const port = process.env.PORT || 3000;
+const app = express();
+const port = process.env.PORT || 6061;
 
 // Serve static files from the static directory
 app.use(express.static(path.join(__dirname, "static")));
@@ -20,14 +15,14 @@ app.use(express.static(path.join(__dirname, "static")));
 app.use(express.json());
 
 // Root route serves the welcome page
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "static", "index.html"));
 });
 
 // API endpoint for scraping
-const scrapeHandler: RequestHandler = async (
-  req: Request,
-  res: Response
+const scrapeHandler: express.RequestHandler = async (
+  req: express.Request,
+  res: express.Response
 ): Promise<void> => {
   const scrapeRequest: ScrapeRequest = req.body;
 

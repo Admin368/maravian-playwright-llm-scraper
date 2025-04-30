@@ -9,7 +9,7 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/static && cp -r src/static/* dist/static/",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "lint": "eslint . --ext .ts",

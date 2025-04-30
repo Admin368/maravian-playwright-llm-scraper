@@ -44,11 +44,14 @@ RUN pnpm exec playwright install chromium
 # Copy source code
 COPY . .
 
-# Build TypeScript code
+# Ensure static directory exists and has correct permissions
+RUN mkdir -p src/static dist/static && chown -R node:node /app
+
+# Build TypeScript code and copy static files
 RUN pnpm build
 
-# Make sure static files are copied to dist
-RUN mkdir -p dist/static && cp -r src/static/* dist/static/
+# Switch to non-root user for better security
+USER node
 
 # Expose port from environment or default to 6061
 EXPOSE ${PORT:-6061}

@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import { ScrapeRequest, ScrapeResponse } from "./types";
 import { scrapeWebsite } from "./scraper";
+import { determineSchema } from "./llm";
 import path from "path";
 
 dotenv.config();
@@ -25,6 +26,17 @@ app.use(express.json());
 // Root route serves the welcome page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "static", "index.html"));
+});
+
+// Schema generation endpoint
+app.post("/schema", async (req, res) => {
+  try {
+    const { query } = req.body;
+    const schema = await determineSchema(query);
+    res.json({ schema });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to generate schema" });
+  }
 });
 
 // SSE endpoint for progress updates

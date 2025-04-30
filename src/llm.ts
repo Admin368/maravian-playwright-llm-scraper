@@ -134,3 +134,46 @@ If you find all required information that matches both the schema AND the query,
     };
   }
 }
+
+export async function determineSchema(query: string): Promise<any> {
+  const messages = [
+    { 
+      role: "system" as const,
+      content: `You are a schema generator that converts natural language queries into JSON Schema objects.
+Your task is to analyze the user's query and determine what data structure would be most appropriate to store the requested information.
+Only respond with a valid JSON Schema object that defines the structure.
+Keep the schema focused on the core information requested.` 
+    },
+    {
+      role: "user" as const,
+      content: `Given this search query: "${query}"
+Generate a JSON Schema that would be appropriate for storing the information being requested.
+The schema should be an object type with appropriate properties and required fields.`
+    }
+  ];
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      temperature: 0.3,
+    });
+
+    const schemaText = response.choices[0]?.message?.content;
+    if (!schemaText) {
+      throw new Error('No schema generated');
+    }
+    
+    return JSON.parse(schemaText);
+  } catch (error) {
+    console.error("Error generating schema:", error);
+    // Return a basic fallback schema if generation fails
+    return {
+      type: "object",
+      properties: {
+        result: { type: "string" }
+      },
+      required: ["result"]
+    };
+  }
+}

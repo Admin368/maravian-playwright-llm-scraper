@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maravian AI Search</title>
+    <style>
+      :root {
+        --primary-color: #2563eb;
+        --secondary-color: #1e40af;
+        --bg-color: #1e1e1e;
+        --panel-bg: #2d2d2d;
+        --border-color: #404040;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        line-height: 1.6;
+        color: #e0e0e0;
+        background-color: var(--bg-color);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+      }
+
+      .search-container {
+        width: 100%;
+        max-width: 800px;
+        text-align: center;
+        margin-top: 15vh;
+      }
+
+      .logo-container {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .logo {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        color: #fff;
+      }
+
+      .logo-description {
+        color: #9ca3af;
+        font-size: 1rem;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .search-box {
+        width: 100%;
+        position: relative;
+        margin-bottom: 1.5rem;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        background: var(--panel-bg);
+        color: #fff;
+        transition: all 0.3s ease;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+      }
+
+      .url-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--panel-bg);
+        color: #fff;
+        margin-bottom: 1rem;
+      }
+
+      .search-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 20px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .search-btn:hover:not(:disabled) {
+        background: var(--secondary-color);
+      }
+
+      .search-btn:disabled {
+        background: #4b5563;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      .progress-container {
+        /* margin-top: 2rem; */
+        width: 100%;
+        max-width: 800px;
+        height: 60px;
+        /* display: none; */
+      }
+
+      .progress-message {
+        /* background: var(--panel-bg); */
+        /* padding: 1rem; */
+        border-radius: 8px;
+        position: absolute;
+        width: 100%;
+        max-width: 800px;
+        opacity: 0;
+        transform: translateY(-20px);
+        animation: slideIn 0.3s forwards;
+      }
+
+      @keyframes slideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .modal {
+        background: var(--panel-bg);
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #fff;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+      }
+
+      .modal-close:hover {
+        color: #fff;
+      }
+
+      .modal-footer {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+      }
+
+      .btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+      }
+
+      .btn:hover {
+        background: var(--secondary-color);
+      }
+
+      .btn-secondary {
+        background: #4b5563;
+      }
+
+      .btn-secondary:hover {
+        background: #374151;
+      }
+
+      .schema-btn {
+        color: #9ca3af;
+        background: none;
+        border: none;
+        text-decoration: underline;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+
+      .schema-btn:hover {
+        color: #fff;
+      }
+
+      pre {
+        background: var(--bg-color);
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+        margin: 0.5rem 0;
+      }
+
+      code {
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="search-container">
+      <div class="logo-container">
+        <div class="logo">Maravian AI Search</div>
+        <p class="logo-description">
+          Intelligent web scraping powered by AI. Simply enter your query and target website,
+          and let our AI automatically determine the best data structure to extract the information you need.
+        </p>
+      </div>
+        <div id="progress" class="progress-container"></div>
+      <form id="searchForm">
+        <div class="search-box">
+          <input
+            type="text"
+            id="query"
+            class="search-input"
+            placeholder="What would you like to find?"
+            required
+          />
+        </div>
+        <input
+          type="url"
+          id="url"
+          class="url-input"
+          placeholder="Enter website URL"
+          required
+        />
+        <button type="submit" id="searchBtn" class="search-btn">
+          Search
+        </button>
+      </form>
+      <button class="schema-btn" onclick="showSchemaModal()">View current schema</button>
+    </div>
+
+
+    <!-- Schema Modal -->
+    <div id="schemaModal" class="modal-backdrop">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Generated Schema</div>
+          <button class="modal-close" onclick="hideSchemaModal()">&times;</button>
+        </div>
+        <pre><code id="schemaContent"></code></pre>
+      </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal-backdrop">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Search Result</div>
+          <button class="modal-close" onclick="hideResultModal()">&times;</button>
+        </div>
+        <div id="resultContent"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="copyResult()">Copy Result</button>
+          <button class="btn" onclick="newSearch()">New Search</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Get URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlParam = urlParams.get('url');
+      const queryParam = urlParams.get('query');
+
+      // Set form values if URL parameters exist
+      if (urlParam) document.getElementById('url').value = urlParam;
+      if (queryParam) document.getElementById('query').value = queryParam;
+
+      const form = document.getElementById('searchForm');
+      const progressDiv = document.getElementById('progress');
+      let eventSource = null;
+
+      function getBaseUrl() {
+        const url = new URL(window.location.href);
+        return url.origin + url.pathname.replace(/\/[^/]*$/, '');
+      }
+
+      function addProgressMessage(message) {
+        const progressDiv = document.getElementById('progress');
+        progressDiv.style.display = 'block';
+        progressDiv.innerHTML = ''; // Clear previous message
+        
+        const messageElement = document.createElement('div');
+        messageElement.className = 'progress-message';
+        messageElement.textContent = message;
+        progressDiv.appendChild(messageElement);
+      }
+
+      let currentSchema = null;
+      const searchBtn = document.getElementById('searchBtn');
+
+      function setSearchingState(isSearching) {
+        searchBtn.disabled = isSearching;
+        searchBtn.textContent = isSearching ? 'Searching...' : 'Search';
+      }
+
+      function showSchemaModal() {
+        if (!currentSchema) return;
+        
+        const schemaModal = document.getElementById('schemaModal');
+        const schemaContent = document.getElementById('schemaContent');
+        schemaContent.textContent = JSON.stringify(currentSchema, null, 2);
+        schemaModal.style.display = 'flex';
+      }
+
+      function hideSchemaModal() {
+        document.getElementById('schemaModal').style.display = 'none';
+      }
+
+      function showResultModal(data) {
+        const resultModal = document.getElementById('resultModal');
+        const resultContent = document.getElementById('resultContent');
+        
+        if (data.isError) {
+          resultContent.innerHTML = `
+            <h3 style="color: #ef4444;">Error</h3>
+            <p>${data.message}</p>
+          `;
+        } else {
+          const formattedData = JSON.stringify(data.data, null, 2);
+          resultContent.innerHTML = `
+            <h3 style="color: #10b981;">Success</h3>
+            <p>${data.message}</p>
+            <pre><code>${formattedData}</code></pre>
+          `;
+        }
+        
+        resultModal.style.display = 'flex';
+      }
+
+      function hideResultModal() {
+        document.getElementById('resultModal').style.display = 'none';
+      }
+
+      function copyResult() {
+        const resultContent = document.getElementById('resultContent');
+        const codeElement = resultContent.querySelector('code');
+        if (codeElement) {
+          navigator.clipboard.writeText(codeElement.textContent)
+            .then(() => alert('Result copied to clipboard!'))
+            .catch(() => alert('Failed to copy result'));
+        }
+      }
+
+      function newSearch() {
+        hideResultModal();
+        document.getElementById('searchForm').reset();
+        document.getElementById('progress').style.display = 'none';
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        progressDiv.innerHTML = '';
+        hideResultModal();
+        progressDiv.style.display = 'none';
+        setSearchingState(true);
+
+        const url = document.getElementById('url').value;
+        const query = document.getElementById('query').value;
+
+        // Update URL with parameters
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('url', url);
+        newUrl.searchParams.set('query', query);
+        window.history.pushState({}, '', newUrl);
+
+        const formData = {
+          url: url,
+          query: query,
+          maxSteps: 5,
+          targetSchema: {
+            type: "object",
+            properties: {},
+            required: []
+          }
+        };
+
+        try {
+          // First, determine the schema based on the query
+          const schemaResponse = await fetch(`${getBaseUrl()}/schema`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query: query })
+          });
+
+          if (!schemaResponse.ok) {
+            throw new Error(`Schema generation failed: ${schemaResponse.status}`);
+          }
+
+          const schemaData = await schemaResponse.json();
+          formData.targetSchema = schemaData.schema;
+          currentSchema = schemaData.schema; // Store the schema for viewing later
+
+          // Now proceed with the scraping
+          const response = await fetch(`${getBaseUrl()}/scrape`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          
+          if (data.scrapeId) {
+            setupEventSource(data.scrapeId);
+          } else {
+            throw new Error('No scrapeId received from server');
+          }
+        } catch (error) {
+          showResultModal({
+            isError: true,
+            message: `Request failed: ${error.message}`
+          });
+          setSearchingState(false);
+        }
+      });
+
+      function setupEventSource(scrapeId) {
+        if (eventSource) eventSource.close();
+        
+        eventSource = new EventSource(`${getBaseUrl()}/scrape/progress/${scrapeId}`);
+        
+        eventSource.onmessage = (event) => {
+          const update = JSON.parse(event.data);
+          try {
+            const messageData = JSON.parse(update.message);
+            if (messageData.isComplete) {
+              showResultModal(messageData);
+              setSearchingState(false);
+              if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+              }
+            } else {
+              addProgressMessage(update.message);
+            }
+          } catch {
+            addProgressMessage(update.message);
+          }
+        };
+
+        eventSource.onerror = () => {
+          setSearchingState(false);
+        };
+      }
+
+      // Close modals when clicking outside
+      window.onclick = function(event) {
+        const schemaModal = document.getElementById('schemaModal');
+        const resultModal = document.getElementById('resultModal');
+        if (event.target === schemaModal) {
+          hideSchemaModal();
+        } else if (event.target === resultModal) {
+          hideResultModal();
+        }
+      }
+
+      // Handle form submission if URL parameters exist
+      if (urlParam && queryParam) {
+        form.dispatchEvent(new Event('submit'));
+      }
+
+      // Cleanup
+      window.addEventListener('beforeunload', () => {
+        if (eventSource) eventSource.close();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maravian AI Scraper API Documentation</title>
+    <style>
+      :root {
+        --primary-color: #2563eb;
+        --text-color: #1f2937;
+        --bg-color: #f3f4f6;
+        --code-bg: #f1f5f9;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--bg-color);
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .docs-section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      h1, h2, h3 {
+        color: var(--text-color);
+      }
+
+      h2 {
+        margin-top: 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--bg-color);
+      }
+
+      pre {
+        background: var(--code-bg);
+        padding: 1.5rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-size: 0.9rem;
+      }
+
+      code {
+        font-family: "Courier New", monospace;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+      }
+
+      th, td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      th {
+        background-color: var(--bg-color);
+        font-weight: 600;
+      }
+
+      .example {
+        margin: 1rem 0;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+      }
+
+      .example-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .home-link {
+        display: block;
+        text-align: center;
+        margin-top: 2rem;
+        color: var(--primary-color);
+        text-decoration: none;
+      }
+
+      .home-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Maravian AI Scraper API Documentation</h1>
+        <p>Learn how to extract structured data from websites using our API</p>
+      </header>
+
+      <div class="docs-section">
+        <h2>API Endpoint</h2>
+        <p>The API has a single endpoint that accepts POST requests:</p>
+        <pre><code>POST /scrape</code></pre>
+      </div>
+
+      <div class="docs-section">
+        <h2>Request Format</h2>
+        <p>All requests should be sent with the following JSON structure:</p>
+        <pre><code>{
+  "url": "string",      // The website URL to scrape
+  "query": "string",    // Natural language description of what to find
+  "maxSteps": number,   // Maximum navigation steps (1-10)
+  "targetSchema": {     // JSON Schema of the desired data
+    "type": "object",
+    "properties": {...},
+    "required": [...]
+  }
+}</code></pre>
+
+        <table>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td>url</td>
+            <td>string</td>
+            <td>The target website URL to scrape</td>
+          </tr>
+          <tr>
+            <td>query</td>
+            <td>string</td>
+            <td>Natural language description of what information to extract</td>
+          </tr>
+          <tr>
+            <td>maxSteps</td>
+            <td>number</td>
+            <td>Maximum number of navigation steps (1-10)</td>
+          </tr>
+          <tr>
+            <td>targetSchema</td>
+            <td>object</td>
+            <td>JSON Schema describing the structure of the data to extract</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="docs-section">
+        <h2>Example Schemas</h2>
+        
+        <div class="example">
+          <div class="example-title">Simple Email Extraction</div>
+          <pre><code>{
+  "url": "https://maravian.com",
+  "query": "find the email from the site",
+  "maxSteps": 5,
+  "targetSchema": {
+    "type": "object",
+    "properties": {
+      "email": { "type": "string" }
+    },
+    "required": ["email"]
+  }
+}</code></pre>
+        </div>
+
+        <div class="example">
+          <div class="example-title">Contact Information</div>
+          <pre><code>{
+  "url": "https://example.com",
+  "query": "Find the contact information of the main person, including their name, position, email, and phone if available",
+  "maxSteps": 5,
+  "targetSchema": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" },
+      "position": { "type": "string" },
+      "email": { "type": "string" },
+      "phone": { "type": "string" }
+    },
+    "required": ["name", "email"]
+  }
+}</code></pre>
+        </div>
+
+        <div class="example">
+          <div class="example-title">Project List</div>
+          <pre><code>{
+  "url": "https://example.com",
+  "query": "Find all projects listed on the site, including their titles, descriptions, and technologies used",
+  "maxSteps": 5,
+  "targetSchema": {
+    "type": "object",
+    "properties": {
+      "projects": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "technologies": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["title", "description"]
+        }
+      }
+    },
+    "required": ["projects"]
+  }
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="docs-section">
+        <h2>Response Format</h2>
+        <p>The API returns JSON responses in the following format:</p>
+        <pre><code>{
+  "isError": boolean,    // true if an error occurred
+  "message": string,     // success/error message
+  "data": object | null  // extracted data matching the targetSchema
+}</code></pre>
+      </div>
+
+      <a href="index.html" class="home-link" id="backToSearch">Back to Search</a>
+    </div>
+    <script>
+      // Calculate the relative path to search.html based on current location
+      window.addEventListener('DOMContentLoaded', () => {
+        const link = document.getElementById('backToSearch');
+        const currentPath = window.location.pathname;
+        const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+        link.href = parentPath + '';
+      });
+    </script>
+  </body>
+</html>

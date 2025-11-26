@@ -7,6 +7,7 @@ test.describe("Maravian Contact Info", () => {
     const request: ScrapeRequest = {
       url: "https://maravian.com",
       maxSteps: 5,
+      query: "Find the main contact email address for the company, preferably a business email rather than a personal one",
       targetSchema: {
         type: "object",
         properties: {
@@ -16,7 +17,7 @@ test.describe("Maravian Contact Info", () => {
       },
     };
 
-    const result = await scrapeWebsite(request);
+    const result = await scrapeWebsite(request, "maravian-contact");
 
     // Check if we got a successful result
     expect(result.isError).toBe(false);

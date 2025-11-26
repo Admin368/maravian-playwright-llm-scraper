@@ -7,6 +7,7 @@ test.describe("Scraper", () => {
     const request: ScrapeRequest = {
       url: "https://example.com",
       maxSteps: 3,
+      query: "Find the page title",
       targetSchema: {
         type: "object",
         properties: {
@@ -15,7 +16,7 @@ test.describe("Scraper", () => {
       },
     };
 
-    const result = await scrapeWebsite(request);
+    const result = await scrapeWebsite(request, "basic-scrape");
     expect(result).toBeDefined();
     expect(result.isError).toBeDefined();
   });
@@ -24,6 +25,7 @@ test.describe("Scraper", () => {
     const request: ScrapeRequest = {
       url: "https://invalid-url-that-does-not-exist.com",
       maxSteps: 3,
+      query: "Find the page title",
       targetSchema: {
         type: "object",
         properties: {
@@ -32,7 +34,7 @@ test.describe("Scraper", () => {
       },
     };
 
-    const result = await scrapeWebsite(request);
+    const result = await scrapeWebsite(request, "invalid-url");
     expect(result.isError).toBe(true);
     expect(result.message).toContain("Scraping failed");
   });
@@ -41,6 +43,7 @@ test.describe("Scraper", () => {
     const request: ScrapeRequest = {
       url: "https://example.com",
       maxSteps: 1,
+      query: "Find the page title",
       targetSchema: {
         type: "object",
         properties: {
@@ -49,7 +52,7 @@ test.describe("Scraper", () => {
       },
     };
 
-    const result = await scrapeWebsite(request);
+    const result = await scrapeWebsite(request, "max-steps");
     expect(result).toBeDefined();
     // Either it found the data in one step or hit the max steps limit
     expect(result.isError || result.data).toBeTruthy();

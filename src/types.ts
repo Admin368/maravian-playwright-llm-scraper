@@ -5,6 +5,7 @@ export interface ScrapeRequest {
   url: string; // The starting URL to scrape
   targetSchema: TargetSchema; // Description of the desired data structure
   maxSteps: number; // Maximum navigation/interaction steps
+  query: string; // Natural language description of what data to extract
 }
 
 // Represents the desired data structure/schema provided by the user
@@ -39,6 +40,18 @@ export interface ScrapeResponse {
   isError: boolean;
   message: string;
   data?: any; // Should ideally match the TargetSchema structure if successful
+  history?: PageHistory[]; // Add history to response
+}
+
+// Represents the history of pages visited during the scraping process
+export interface PageHistory {
+  url: string;
+  title: string;
+  textContent: string;
+  emails: string[];
+  timestamp: string;
+  clickedElement: string | null; // The element that was clicked to reach this page
+  nextActionElementId: string | null; // The next action suggested by LLM
 }
 
 // --- Data structures for interaction between scraper and LLM ---
@@ -58,11 +71,15 @@ export interface ExtractedPageStructure {
   }>;
   textContent: string;
   emails: string[];
+  contactText: string; // Specialized text extracted from contact sections, footers, etc.
 }
 
 // Represents the analysis result from the LLM
 export interface LLMAnalysisResult {
+  isError?: boolean; // Indicates if the LLM found all required information
+  message?: string; // Error message if isError is true
   isDataFound: boolean;
   data: Record<string, any> | null;
   nextActionElementId: string | null;
+  reasoning?: string; // Explanation for the decision
 }

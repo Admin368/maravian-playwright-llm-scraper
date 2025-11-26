@@ -9,7 +9,7 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
-    "build": "tsc",
+    "build": "tsc && cpy \"src/static/**/*\" dist/static --parents",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "lint": "eslint . --ext .ts",
@@ -30,6 +30,7 @@
     "@playwright/test": "^1.52.0",
     "@types/express": "^5.0.1",
     "@types/node": "^22.15.2",
+    "cpy-cli": "^5.0.0",
     "typescript": "^5.8.3"
   }
 }

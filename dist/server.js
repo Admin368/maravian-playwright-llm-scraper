@@ -1,0 +1,136 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sendProgress = sendProgress;
+const express_1 = __importDefault(require("express"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const scraper_1 = require("./scraper");
+const llm_1 = require("./llm");
+const path_1 = __importDefault(require("path"));
+dotenv_1.default.config();
+const app = (0, express_1.default)();
+const port = process.env.PORT || 6061;
+// Enable CORS
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
+// Serve static files from the static directory
+app.use(express_1.default.static(path_1.default.join(__dirname, "static")));
+app.use(express_1.default.json());
+// Root route serves the welcome page
+app.get("/", (req, res) => {
+    res.sendFile(path_1.default.join(__dirname, "static", "index.html"));
+});
+// Schema generation endpoint
+app.post("/schema", async (req, res) => {
+    try {
+        const { query } = req.body;
+        const schema = await (0, llm_1.determineSchema)(query);
+        res.json({ schema });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Failed to generate schema" });
+    }
+});
+// SSE endpoint for progress updates
+app.get("/scrape/progress/:id", (req, res) => {
+    const scrapeId = req.params.id;
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+    res.flushHeaders(); // Immediately send headers
+    // Send initial message to establish connection
+    res.write("data: " + JSON.stringify({ message: "Connection established" }) + "\n\n");
+    // Store the connection in our global connections map
+    progressConnections.set(scrapeId, res);
+    // Remove the connection when client disconnects
+    req.on("close", () => {
+        progressConnections.delete(scrapeId);
+    });
+});
+// Store SSE connections
+const progressConnections = new Map();
+// Function to send progress updates
+function sendProgress(scrapeId, message) {
+    const connection = progressConnections.get(scrapeId);
+    if (connection) {
+        connection.write(`data: ${JSON.stringify({ message })}\n\n`);
+    }
+}
+// API endpoint for scraping
+const scrapeHandler = async (req, res) => {
+    const scrapeRequest = req.body;
+    const scrapeId = Date.now().toString(); // Simple ID generation
+    // Basic validation
+    if (!scrapeRequest.url ||
+        !scrapeRequest.targetSchema ||
+        !scrapeRequest.maxSteps ||
+        !scrapeRequest.query) {
+        res.status(400).json({
+            isError: true,
+            message: "Missing required fields: url, targetSchema, maxSteps, query",
+            scrapeId,
+        });
+        return;
+    }
+    if (typeof scrapeRequest.maxSteps !== "number" || scrapeRequest.maxSteps <= 0) {
+        res.status(400).json({
+            isError: true,
+            message: "maxSteps must be a positive number",
+            scrapeId,
+        });
+        return;
+    }
+    if (typeof scrapeRequest.query !== "string" || scrapeRequest.query.trim() === "") {
+        res.status(400).json({
+            isError: true,
+            message: "query must be a non-empty string",
+            scrapeId,
+        });
+        return;
+    }
+    console.log(`Received scrape request for URL: ${scrapeRequest.url}`);
+    console.log(`Query: ${scrapeRequest.query}`);
+    // Return the scrapeId immediately
+    res.json({
+        isError: false,
+        message: "Scraping started",
+        scrapeId,
+    });
+    try {
+        // Start the scraping process
+        const result = await (0, scraper_1.scrapeWebsite)(scrapeRequest, scrapeId);
+        // Send final result
+        sendProgress(scrapeId, JSON.stringify({
+            isComplete: true,
+            ...result
+        }));
+    }
+    catch (error) {
+        console.error("Unhandled error in /scrape:", error);
+        sendProgress(scrapeId, JSON.stringify({
+            isComplete: true,
+            isError: true,
+            message: "An unexpected server error occurred.",
+        }));
+    }
+    finally {
+        // Close the connection after completion
+        const connection = progressConnections.get(scrapeId);
+        if (connection) {
+            connection.end();
+            progressConnections.delete(scrapeId);
+        }
+    }
+};
+app.post("/scrape", scrapeHandler);
+app.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+});

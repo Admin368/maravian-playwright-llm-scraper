@@ -2,7 +2,10 @@ version: '3.8'
 
 services:
   scraper:
-    build: .
+    build:
+      context: .
+      # Re-pull node:24-bookworm-slim on every build so Node security releases land
+      pull: true
     ports:
       - "${PORT:-6061}:${PORT:-6061}"
     environment:

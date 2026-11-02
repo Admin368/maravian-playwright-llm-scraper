@@ -37,8 +37,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
-RUN pnpm install
+# Install dependencies exactly as locked (lockfile v9 needs pnpm 9+)
+RUN pnpm install --frozen-lockfile
 
 # Install Playwright browsers
 RUN pnpm exec playwright install chromium
@@ -50,7 +50,7 @@ COPY . .
 RUN pnpm build
 
 # Expose port
-EXPOSE 3000
+EXPOSE 6061
 
 # Start the application
 CMD ["pnpm", "start"]

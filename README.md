@@ -46,7 +46,7 @@ pnpm build
 pnpm start
 ```
 
-The server will start on `http://localhost:3000` by default.
+The server will start on `http://localhost:6061` by default.
 
 ### API Endpoint
 
@@ -124,7 +124,7 @@ cp .env.example .env
 
 3. Build and start the Docker container:
 ```bash
-docker compose up -d
+docker compose up -d --build   # build.pull re-pulls the Node base image
 ```
 
 4. View logs:
@@ -137,7 +137,7 @@ docker compose logs -f
 docker compose down
 ```
 
-The server will be available at `http://localhost:3000`.
+The server will be available at `http://localhost:6061`.
 
 ## License
 

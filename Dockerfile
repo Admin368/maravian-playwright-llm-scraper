@@ -1,6 +1,6 @@
 # Node 24 LTS on Debian bookworm (same distro as before, so the Playwright apt deps below
 # keep their names). Node 20 is end of life with no fix for CVE-2026-111497; the floating
-# major tag picks up security releases on every `docker compose build --pull`.
+# major tag picks up security releases on every rebuild (compose sets build.pull).
 FROM node:24-bookworm-slim
 
 # pnpm via corepack, at the version pinned in package.json's packageManager field

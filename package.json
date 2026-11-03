@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "packageManager": "pnpm@8.15.4",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",

@@ -1,8 +1,10 @@
-# Use Node.js LTS as base image
-FROM node:20-slim
+# Node 24 LTS on Debian bookworm (same distro as before, so the Playwright apt deps below
+# keep their names). Node 20 is end of life with no fix for CVE-2026-111497; the floating
+# major tag picks up security releases on every rebuild (compose sets build.pull).
+FROM node:24-bookworm-slim
 
-# Install pnpm and wget
-RUN npm install -g pnpm
+# pnpm via corepack, at the version pinned in package.json's packageManager field
+RUN corepack enable
 RUN apt-get update && apt-get install -y wget
 
 # Install required dependencies for Playwright
@@ -35,8 +37,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
-RUN pnpm install
+# Install dependencies exactly as locked (lockfile v9 needs pnpm 9+)
+RUN pnpm install --frozen-lockfile
 
 # Install Playwright browsers
 RUN pnpm exec playwright install chromium
@@ -48,7 +50,7 @@ COPY . .
 RUN pnpm build
 
 # Expose port
-EXPOSE 3000
+EXPOSE 6061
 
 # Start the application
 CMD ["pnpm", "start"]
